@@ -7,69 +7,104 @@ var util = require('util'),
     crypto = require('crypto'),
     GsSocket = require('./lib/GsSocket'),
     md5 = require('md5'),
-    chalk = require('chalk');
+    chalk = require('chalk'),
+    cluster = require('cluster');
 
 function Log() {
     console.log(chalk.cyan('ClientManager') + ' ' + Array.prototype.join.call(arguments, '    '));
 }
 
-module.exports = function ClientManager(db) {
+if (cluster.isMaster) {
+  // Fork workers.
+    for (var i = 0; i < 8; i++) {
+        cluster.fork();
+    }
 
-    // Gamespy Login Server
-    var server = new GsSocket(29900);
+    cluster.on('exit', (worker, code, signal) => {
+        Log(`Worker ${worker.process.pid} died`);
+        cluster.fork();
+    });
 
-    // When we get a new connection
-    server.on('newClient', function(client) {
+    return;
+}
 
-        // Process Login Requests
-        client.on('command.login', function(payload) {
-            client.state.clientChallenge = payload['challenge'] || undefined;
-            client.state.clientResponse = payload['response'] || undefined;
-            if (!payload['uniquenick'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
+var db = GsUtil.dbConnect();
 
-            db.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], function(err, result) {
-                if (!result || result.length == 0) { return client.writeError(265, 'The username provided is not registered.') }
-                result = result[0];
+// Gamespy Login Server
+var server = new GsSocket(29900);
 
-                client.state.plyName = result.username;
-                client.state.plyEmail = result.email;
-                client.state.plyCountry = result.country;
-                client.state.plyPid = result.pid;
+// When we get a new connection
+server.on('newClient', (client) => {
 
-                var responseVerify = md5(result.password + Array(49).join(' ') + client.state.plyName + client.state.clientChallenge + client.state.serverChallenge + result.password);
-                if (client.state.clientResponse !== responseVerify) {
-                    Log('Login failure', client.state.plyName, client.socket.remoteAddress)
-                    return client.writeError(256, 'Incorrect password.');
-                }
+    // Process Login Requests
+    client.on('command.login', (payload) => {
+        client.state.clientChallenge = payload['challenge'] || undefined;
+        client.state.clientResponse = payload['response'] || undefined;
+        if (!payload['uniquenick'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
 
-                // Generate a session key
-                var len = client.state.plyName.length;
-                var nameIndex = 0;
-                var session = 0;
-                while(len-- != 0) {
-                    session = GsUtil.crcLookup[((client.state.plyName.charCodeAt(nameIndex) ^ session) & 0xff) % 256] ^ (session >>= 8);
-                    nameIndex++;
-                }
-                Log('Login Success', client.state.plyName, client.socket.remoteAddress)
-                client.write(util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
-                    session,
-                    md5(result.password + Array(49).join(' ') + client.state.plyName + client.state.serverChallenge + client.state.clientChallenge + result.password),
-                    client.state.plyPid, client.state.plyPid,
-                    client.state.plyName,
-                    GsUtil.bf2Random(22)
-                ));
-            });
-        })
+        db.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) => {
+            if (!result || result.length == 0) { return client.writeError(265, 'The username provided is not registered.') }
+            result = result[0];
 
-        // Send a challenge
-        crypto.randomBytes(5, function(err, buf) {
-          var token = buf.toString('hex');
-          client.state.serverChallenge = token;
-          client.write(util.format('\\lc\\1\\challenge\\%s\\id\\1\\final\\', token));
-        })
+            client.state.plyName = result.username;
+            client.state.plyEmail = result.email;
+            client.state.plyCountry = result.country;
+            client.state.plyPid = result.pid;
+
+            var responseVerify = md5(result.password + Array(49).join(' ') + client.state.plyName + client.state.clientChallenge + client.state.serverChallenge + result.password);
+            if (client.state.clientResponse !== responseVerify) {
+                Log('Login failure', client.state.plyName, client.socket.remoteAddress)
+                return client.writeError(256, 'Incorrect password.');
+            }
+
+            // Generate a session key
+            var len = client.state.plyName.length;
+            var nameIndex = 0;
+            var session = 0;
+            while(len-- != 0) {
+                session = GsUtil.crcLookup[((client.state.plyName.charCodeAt(nameIndex) ^ session) & 0xff) % 256] ^ (session >>= 8);
+                nameIndex++;
+            }
+
+            Log('Login Success', client.state.plyName, client.socket.remoteAddress)
+            client.write(util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
+                session,
+                md5(result.password + Array(49).join(' ') + client.state.plyName + client.state.serverChallenge + client.state.clientChallenge + result.password),
+                client.state.plyPid, client.state.plyPid,
+                client.state.plyName,
+                GsUtil.bf2Random(22)
+            ));
+        });
     })
 
-}
+    client.on('command.getprofile', (payload) => {
+        Log('GetProfile', client.state.plyName, client.socket.remoteAddress);
+        client.write(util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\0\\firstname\\\\lastname\\' +
+        '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
+            client.state.plyPid,
+            client.state.plyName,
+            client.state.plyPid,
+            client.state.plyEmail,
+            GsUtil.bf2Random(32),
+            client.state.plyName,
+            client.state.plyCountry,
+            (client.state.profileSent ? 5 : 2)
+        ));
+        client.state.profileSent = false;
+    });
+
+    client.on('command.logout', (payload) => {
+        Log('Logout', client.state.plyName, client.socket.remoteAddress);
+        client.socket.destroy();
+    })
+
+    // Send a challenge
+    crypto.randomBytes(5, (err, buf) => {
+      var token = buf.toString('hex');
+      client.state.serverChallenge = token;
+      client.write(util.format('\\lc\\1\\challenge\\%s\\id\\1\\final\\', token));
+    })
+})
 
 /*
 module.exports = function(db) {
