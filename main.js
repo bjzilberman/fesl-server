@@ -14,5 +14,5 @@ db.connect(function(err) {
   app.db = db;
 
   var clientManager = require('./clientManager')(db);
-  var searchProvider = require('./searchProvider')(db);
+  //var searchProvider = require('./searchProvider')(db);
 });

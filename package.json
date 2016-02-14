@@ -6,9 +6,10 @@
   "author": "",
   "license": "ISC",
   "scripts": {
-    "update-geodb": "geoip-lite updatedb"  
+    "update-geodb": "geoip-lite updatedb"
   },
   "dependencies": {
+    "chalk": "^1.1.1",
     "geoip-lite": "^1.1.6",
     "mysql": "^2.10.2",
     "node-mysql": "^0.4.2"
