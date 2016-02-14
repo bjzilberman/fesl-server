@@ -1,0 +1,16 @@
+{
+  "name": "battlelog_gamespy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "update-geodb": "geoip-lite updatedb"  
+  },
+  "dependencies": {
+    "geoip-lite": "^1.1.6",
+    "mysql": "^2.10.2",
+    "node-mysql": "^0.4.2"
+  }
+}
