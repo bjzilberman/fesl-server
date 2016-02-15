@@ -11,12 +11,12 @@ const GsSocket = require('../lib/GsSocket');
 var db = GsUtil.dbConnect();
 
 function Log() {
-    console.log(chalk.cyan('ClientManager') + '\t\t' + Array.prototype.join.call(arguments, '\t\t'));
+    console.log(GsUtil.Time() + chalk.cyan('ClientManager') + '\t\t' + Array.prototype.join.call(arguments, '\t\t'));
 }
 
 // Master Process!
 if (cluster.isMaster) {
-    console.log(chalk.green('Starting Client Manager (8 Forks)'));
+    console.log(GsUtil.Time() + chalk.green('Starting Client Manager (8 Forks)'));
     var playerStates = {}
 
     var newFork = function() {

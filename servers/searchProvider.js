@@ -9,11 +9,11 @@ const GsUtil = require('../lib/GsUtil');
 const GsSocket = require('../lib/GsSocket');
 
 function Log() {
-    console.log(chalk.magenta('SearchProvider') + '\t\t' + Array.prototype.join.call(arguments, '\t\t'));
+    console.log(GsUtil.Time() + chalk.magenta('SearchProvider') + '\t' + Array.prototype.join.call(arguments, '\t'));
 }
 
 if (cluster.isMaster) {
-    console.log(chalk.green('Starting Search Provider (8 Forks)'));
+    console.log(GsUtil.Time() + chalk.green('Starting Search Provider (8 Forks)'));
     var playerStates = {};
 
     var newFork = function() {
