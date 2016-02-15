@@ -188,7 +188,7 @@ server.on('newClient', (client) => {
             db.query('UPDATE web_users SET game_session = 0 WHERE id=?', [client.state.battlelogId]);
             process.send({type: 'clientLogout', id: client.state.battlelogId});
         } else {
-            Log('Disconnect', client.socket.remoteAddress);
+            //Log('Disconnect', client.socket.remoteAddress);
         }
         client = null;
         delete client;
