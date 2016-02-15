@@ -198,7 +198,9 @@ server.on('newClient', (client) => {
     // Send a challenge
     crypto.randomBytes(5, (err, buf) => {
       var token = buf.toString('hex');
-      client.state.serverChallenge = token;
-      client.write(util.format('\\lc\\1\\challenge\\%s\\id\\1\\final\\', token));
+      if (client !== null) {
+          client.state.serverChallenge = token;
+          client.write(util.format('\\lc\\1\\challenge\\%s\\id\\1\\final\\', token));
+      }
     })
 });
