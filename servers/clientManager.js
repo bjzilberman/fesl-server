@@ -94,7 +94,7 @@ server.on('newClient', (client) => {
             client.state.plyCountry = result.game_country;
             client.state.plyPid = result.pid;
 
-            var responseVerify = md5(result.password + Array(49).join(' ') + client.state.plyName + client.state.clientChallenge + client.state.serverChallenge + result.password);
+            var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
             if (client.state.clientResponse !== responseVerify) {
                 Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
                 return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
