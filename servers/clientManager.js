@@ -112,7 +112,7 @@ server.on('newClient', (client) => {
             Log('Login Success', client.socket.remoteAddress, client.state.plyName)
             client.write(util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
                 session,
-                md5(result.password + Array(49).join(' ') + client.state.plyName + client.state.serverChallenge + client.state.clientChallenge + result.password),
+                md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
                 client.state.plyPid, client.state.plyPid,
                 client.state.plyName,
                 GsUtil.bf2Random(22)
