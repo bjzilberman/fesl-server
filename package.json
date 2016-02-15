@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "chalk": "^1.1.1",
+    "dateformat": "^1.0.12",
     "geoip-lite": "^1.1.6",
     "mysql": "^2.10.2",
     "node-mysql": "^0.4.2"
