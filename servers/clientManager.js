@@ -124,9 +124,9 @@ server.on('newClient', (client) => {
         });
     })
 
-    client.on('command', (name, payload) => {
+    /*client.on('command', (name, payload) => {
         Log('Raw Command: ', name, JSON.stringify(payload, true));
-    })
+    })*/
 
     client.on('command.getprofile', (payload) => {
         Log('GetProfile',  client.socket.remoteAddress, client.state.plyName);
