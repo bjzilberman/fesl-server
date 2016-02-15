@@ -96,8 +96,8 @@ server.on('newClient', (client) => {
 
             var responseVerify = md5(result.password + Array(49).join(' ') + client.state.plyName + client.state.clientChallenge + client.state.serverChallenge + result.password);
             if (client.state.clientResponse !== responseVerify) {
-                Log('Login Failure', client.socket.remoteAddress, client.state.plyName)
-                return client.writeError(256, 'Incorrect password.');
+                Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
+                return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
             }
 
             // Generate a session key
@@ -124,6 +124,10 @@ server.on('newClient', (client) => {
         });
     })
 
+    client.on('command', (name, payload) => {
+        Log('Raw Command: ', name, JSON.stringify(payload, true));
+    })
+
     client.on('command.getprofile', (payload) => {
         Log('GetProfile',  client.socket.remoteAddress, client.state.plyName);
         client.write(util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\0\\firstname\\\\lastname\\' +
@@ -137,7 +141,7 @@ server.on('newClient', (client) => {
             client.state.plyCountry,
             (client.state.profileSent ? 5 : 2)
         ));
-        client.state.profileSent = false;
+        client.state.profileSent = true;
     });
 
     client.on('command.updatepro', (payload) => {
