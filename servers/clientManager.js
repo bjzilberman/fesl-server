@@ -11,7 +11,7 @@ const GsSocket = require('../lib/GsSocket');
 var db = GsUtil.dbConnect();
 
 function Log() {
-    console.log(GsUtil.Time() + chalk.cyan('ClientManager') + '\t\t' + Array.prototype.join.call(arguments, '\t\t'));
+    console.log(GsUtil.Time() + chalk.cyan('ClientManager') + '\t' + Array.prototype.join.call(arguments, '\t'));
 }
 
 // Master Process!
