@@ -45,22 +45,28 @@ server.on('newClient', (client) => {
         if (!payload.email || (!payload.pass && !payload.passenc)) { return child.writeError(0, 'Invalid query!'); }
         Log('Nicks\t', client.socket.remoteAddress, payload.email);
         var pass = md5(payload.pass || GsUtil.decodePassword(payload.passenc))
-        db.query('SELECT username FROM web_users WHERE email=? AND password=?', [payload.email, pass], function(err, resp) {
-            resp = resp || [];
-            var out = '\\nr\\' + resp.length;
-            for (var i = 0; i < resp.length; i++) out += util.format('\\nick\\%s\\uniquenick\\%s', resp[i].username, resp[i].username);
-            out += '\\ndone\\final\\';
-            client.write(out);
-        })
+        GsUtil.dbConnection(db, (err, connection) => {
+            db.query('SELECT username FROM web_users WHERE email=? AND password=?', [payload.email, pass], function(err, resp) {
+                resp = resp || [];
+                var out = '\\nr\\' + resp.length;
+                for (var i = 0; i < resp.length; i++) out += util.format('\\nick\\%s\\uniquenick\\%s', resp[i].username, resp[i].username);
+                out += '\\ndone\\final\\';
+                client.write(out);
+                connection.release();
+            })
+        });
     })
 
     // Get PID for player
     client.on('command.check', (payload) => {
         if (!payload.nick) { return child.writeError(0, 'Invalid query!'); }
         Log('Check\t', client.socket.remoteAddress, payload.nick);
-        db.query('SELECT pid FROM web_users WHERE username=?', [payload.nick], function(err, response) {
-            if (!response || response.length == 0) { client.writeError(256, 'Invalid username. Account does not exist!'); }
-            client.write(util.format('\\cur\\0\\pid\\%d\\final\\', response[0].pid));
+        GsUtil.dbConnection(db, (err, connection) => {
+            connection.query('SELECT pid FROM web_users WHERE username=?', [payload.nick], function(err, response) {
+                if (!response || response.length == 0) { client.writeError(256, 'Invalid username. Account does not exist!'); }
+                client.write(util.format('\\cur\\0\\pid\\%d\\final\\', response[0].pid));
+                connection.release();
+            });
         });
     });
 })

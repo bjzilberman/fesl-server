@@ -1,7 +1,6 @@
 {
   "name": "battlelog_gamespy",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "author": "",
   "license": "ISC",
@@ -11,8 +10,15 @@
   "dependencies": {
     "chalk": "^1.1.1",
     "dateformat": "^1.0.12",
-    "geoip-lite": "^1.1.6",
     "mysql": "^2.10.2",
-    "node-mysql": "^0.4.2"
-  }
+    "node-mysql": "^0.4.2",
+    "md5": "2.0.0"
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://SpencerSharkey@bitbucket.org/battlelog/master-server.git"
+  },
+  "homepage": "https://bitbucket.org/battlelog/master-server#readme",
+  "description": ""
 }
