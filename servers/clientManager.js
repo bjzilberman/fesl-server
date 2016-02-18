@@ -196,11 +196,13 @@ server.on('newClient', (client) => {
     });
 
     client.on('close', () => {
+        if (!client.state) return;
+        var blId = client.state.battlelogId;
         if (client.state.hasLogin) {
             Log('Logout', client.state.plyName, client.socket.remoteAddress);
             GsUtil.dbConnection(db, (err, connection) => {
-                connection.query('UPDATE web_users SET game_session = 0 WHERE id=?', [client.state.battlelogId]);
-                process.send({type: 'clientLogout', id: client.state.battlelogId});
+                connection.query('UPDATE web_users SET game_session = 0 WHERE id=?', [blId]);
+                process.send({type: 'clientLogout', id: blId});
                 connection.release();
             });
         } else {
