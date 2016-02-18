@@ -62,7 +62,7 @@ if (cluster.isMaster) {
                     newFork();
                     connection.release();
                 });
-            }
+            })
         } else {
             newFork();
         }
