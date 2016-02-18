@@ -8,7 +8,7 @@ var cluster = require('cluster'),
 const GsUtil = require('../lib/GsUtil');
 const GsSocket = require('../lib/GsSocket');
 
-var db = GsUtil.dbConnect();
+var db = GsUtil.dbPool();
 
 function Log() {
     console.log(GsUtil.Time() + chalk.cyan('ClientManager') + '\t' + Array.prototype.join.call(arguments, '\t'));

@@ -33,7 +33,7 @@ if (cluster.isMaster) {
     return;
 }
 
-var db = GsUtil.dbConnect();
+var db = GsUtil.dbPool();
 
 // Gamespy Search Provider Server
 var server = new GsSocket(chalk.magenta('SP'), 29901);
