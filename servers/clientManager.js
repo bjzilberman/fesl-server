@@ -165,34 +165,7 @@ server.on('newClient', (client) => {
     })
 
     client.on('command.newuser', (payload) => {
-        if (!payload.nick || !payload.email || !payload.passwordenc) return client.writeError(516, 'You are missing a name, email, or password.');
-        Log('NewUser (Starting)', client.socket.remoteaddress, payload.nick, payload.passwordenc, payload.email.toLowerCase());
-        GsUtil.dbConnection(db, (err, connection) => {
-            connection.query('SELECT id FROM web_users WHERE username=?', [payload.nick], function(err, result) {
-                if (result.length == 0) {
-                    var pass = GsUtil.decodePassword(payload.passwordenc);
-                    var cc = 'US'; // Will resolve later...
-                    var passHash = md5(pass);
-                    connection.query('SELECT COALESCE(MAX(pid), 500000000)+1 as newPid FROM web_users', function(err, result) {
-                        var newPid = result[0].newPid;
-                        connection.query('INSERT INTO web_users SET ?', {
-                            pid: newPid,
-                            username: payload.nick,
-                            password: passHash,
-                            email: payload.email.toLowerCase(),
-                            country: cc
-                        }, function(err, result) {
-                            Log('NewUser', client.socket.remoteaddress, payload.nick, pass, payload.email.toLowerCase(), cc);
-                            client.write(util.format('\\nur\\\\userid\\%d\\profileid\\%d\\id\\1\\final\\', newPid, newPid));
-                            connection.release();
-                        });
-                    });
-                } else {
-                    return client.writeError(516, 'Username already in use!');
-                    connection.release();
-                }
-            })
-        });
+        client.writeError(516, 'Registration in game is currently unavailable. Please visit battlelog.co to register.');
     });
 
     client.on('close', () => {
