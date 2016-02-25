@@ -94,6 +94,10 @@ server.on('newClient', (client) => {
                 if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
                 result = result[0];
 
+                if (!client) {
+                    connection.release();
+                    return console.log("Client disappeared during login");
+                }
                 client.state.battlelogId = result.id;
                 client.state.plyName = result.username;
                 client.state.plyEmail = result.email;
@@ -103,7 +107,7 @@ server.on('newClient', (client) => {
                 var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
                 if (client.state.clientResponse !== responseVerify) {
                     Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
-		    connection.release();
+		            connection.release();
                     return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
                 }
 
