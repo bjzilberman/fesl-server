@@ -16,7 +16,7 @@ function Log() {
 
 // Master Process!
 if (cluster.isMaster) {
-    console.log(GsUtil.Time() + chalk.green('Starting Client Manager (8 Forks)'));
+    console.log(GsUtil.Time() + chalk.green('Starting Client Manager (1 Forks)'));
     var playerStates = {}
 
     var newFork = function() {
@@ -38,7 +38,7 @@ if (cluster.isMaster) {
         });
     }
 
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 1; i++) {
         newFork();
     }
 
@@ -59,13 +59,15 @@ if (cluster.isMaster) {
                     Log('   ...OK! (Affected Rows: ' + result.affectedRows + ')');
                     playerStates[pid] = null;
                     delete playerStates[pid];
-                    newFork();
+                   
                     connection.release();
                 });
             })
         } else {
-            newFork();
+            
         }
+	console.log('Starting new fork');
+	newFork();
     });
 
     return;
@@ -89,7 +91,7 @@ server.on('newClient', (client) => {
 
         GsUtil.dbConnection(db, (err, connection) => {
             connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) => {
-                if (!result || result.length == 0) { return client.writeError(265, 'The username provided is not registered.') }
+                if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
                 result = result[0];
 
                 client.state.battlelogId = result.id;
@@ -101,6 +103,7 @@ server.on('newClient', (client) => {
                 var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
                 if (client.state.clientResponse !== responseVerify) {
                     Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
+		    connection.release();
                     return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
                 }
 
