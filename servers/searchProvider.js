@@ -13,14 +13,14 @@ function Log() {
 }
 
 if (cluster.isMaster) {
-    console.log(GsUtil.Time() + chalk.green('Starting Search Provider (8 Forks)'));
+    console.log(GsUtil.Time() + chalk.green('Starting Search Provider (1 Forks)'));
     var playerStates = {};
 
     var newFork = function() {
         var worker = cluster.fork();
     }
 
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 1; i++) {
         newFork();
     }
 

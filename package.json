@@ -8,10 +8,11 @@
     "update-geodb": "geoip-lite updatedb"
   },
   "dependencies": {
+    "byline": "^4.2.1",
     "chalk": "^1.1.1",
     "dateformat": "^1.0.12",
-    "mysql": "^2.10.2",
-    "md5": "2.0.0"
+    "md5": "2.0.0",
+    "mysql": "^2.10.2"
   },
   "devDependencies": {},
   "repository": {

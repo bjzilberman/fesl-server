@@ -16,7 +16,7 @@ function Log() {
 
 // Master Process!
 if (cluster.isMaster) {
-    console.log(GsUtil.Time() + chalk.green('Starting Client Manager (8 Forks)'));
+    console.log(GsUtil.Time() + chalk.green('Starting Client Manager (1 Forks)'));
     var playerStates = {}
 
     var newFork = function() {
@@ -38,7 +38,7 @@ if (cluster.isMaster) {
         });
     }
 
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 1; i++) {
         newFork();
     }
 
@@ -59,13 +59,15 @@ if (cluster.isMaster) {
                     Log('   ...OK! (Affected Rows: ' + result.affectedRows + ')');
                     playerStates[pid] = null;
                     delete playerStates[pid];
-                    newFork();
+                   
                     connection.release();
                 });
             })
         } else {
-            newFork();
+            
         }
+	console.log('Starting new fork');
+	newFork();
     });
 
     return;
@@ -89,9 +91,13 @@ server.on('newClient', (client) => {
 
         GsUtil.dbConnection(db, (err, connection) => {
             connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) => {
-                if (!result || result.length == 0) { return client.writeError(265, 'The username provided is not registered.') }
+                if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
                 result = result[0];
 
+                if (!client) {
+                    connection.release();
+                    return console.log("Client disappeared during login");
+                }
                 client.state.battlelogId = result.id;
                 client.state.plyName = result.username;
                 client.state.plyEmail = result.email;
@@ -101,6 +107,7 @@ server.on('newClient', (client) => {
                 var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
                 if (client.state.clientResponse !== responseVerify) {
                     Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
+		            connection.release();
                     return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
                 }
 
@@ -165,34 +172,7 @@ server.on('newClient', (client) => {
     })
 
     client.on('command.newuser', (payload) => {
-        if (!payload.nick || !payload.email || !payload.passwordenc) return client.writeError(516, 'You are missing a name, email, or password.');
-        Log('NewUser (Starting)', client.socket.remoteaddress, payload.nick, payload.passwordenc, payload.email.toLowerCase());
-        GsUtil.dbConnection(db, (err, connection) => {
-            connection.query('SELECT id FROM web_users WHERE username=?', [payload.nick], function(err, result) {
-                if (result.length == 0) {
-                    var pass = GsUtil.decodePassword(payload.passwordenc);
-                    var cc = 'US'; // Will resolve later...
-                    var passHash = md5(pass);
-                    connection.query('SELECT COALESCE(MAX(pid), 500000000)+1 as newPid FROM web_users', function(err, result) {
-                        var newPid = result[0].newPid;
-                        connection.query('INSERT INTO web_users SET ?', {
-                            pid: newPid,
-                            username: payload.nick,
-                            password: passHash,
-                            email: payload.email.toLowerCase(),
-                            country: cc
-                        }, function(err, result) {
-                            Log('NewUser', client.socket.remoteaddress, payload.nick, pass, payload.email.toLowerCase(), cc);
-                            client.write(util.format('\\nur\\\\userid\\%d\\profileid\\%d\\id\\1\\final\\', newPid, newPid));
-                            connection.release();
-                        });
-                    });
-                } else {
-                    return client.writeError(516, 'Username already in use!');
-                    connection.release();
-                }
-            })
-        });
+        client.writeError(516, 'Registration in game is currently unavailable. Please visit battlelog.co to register.');
     });
 
     client.on('close', () => {
