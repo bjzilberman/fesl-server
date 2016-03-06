@@ -13,14 +13,14 @@ function Log() {
 }
 
 if (cluster.isMaster) {
-    console.log(GsUtil.Time() + chalk.green('Starting Search Provider (1 Forks)'));
+    console.log(GsUtil.Time() + chalk.green('Starting Search Provider (8 Forks)'));
     var playerStates = {};
 
     var newFork = function() {
         var worker = cluster.fork();
     }
 
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < 8; i++) {
         newFork();
     }
 
@@ -46,6 +46,7 @@ server.on('newClient', (client) => {
         Log('Nicks\t', client.socket.remoteAddress, payload.email);
         var pass = md5(payload.pass || GsUtil.decodePassword(payload.passenc))
         GsUtil.dbConnection(db, (err, connection) => {
+            if (err || !connection) { return client.writeError(0, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
             db.query('SELECT username FROM web_users WHERE email=? AND password=?', [payload.email, pass], function(err, resp) {
                 resp = resp || [];
                 var out = '\\nr\\' + resp.length;
@@ -62,6 +63,7 @@ server.on('newClient', (client) => {
         if (!payload.nick) { return child.writeError(0, 'Invalid query!'); }
         Log('Check\t', client.socket.remoteAddress, payload.nick);
         GsUtil.dbConnection(db, (err, connection) => {
+            if (err || !connection) { return client.writeError(0, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
             connection.query('SELECT pid FROM web_users WHERE username=?', [payload.nick], function(err, response) {
                 if (!response || response.length == 0) { client.writeError(256, 'Invalid username. Account does not exist!'); }
                 client.write(util.format('\\cur\\0\\pid\\%d\\final\\', response[0].pid));
