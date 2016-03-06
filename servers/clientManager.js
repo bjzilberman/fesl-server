@@ -16,7 +16,7 @@ function Log() {
 
 // Master Process!
 if (cluster.isMaster) {
-    console.log(GsUtil.Time() + chalk.green('Starting Client Manager (1 Forks)'));
+    console.log(GsUtil.Time() + chalk.green('Starting Client Manager (8 Forks)'));
     var playerStates = {}
 
     var newFork = function() {
@@ -38,7 +38,7 @@ if (cluster.isMaster) {
         });
     }
 
-    for (var i = 0; i < 1; i++) {
+    for (var i = 0; i < 8; i++) {
         newFork();
     }
 
@@ -59,12 +59,12 @@ if (cluster.isMaster) {
                     Log('   ...OK! (Affected Rows: ' + result.affectedRows + ')');
                     playerStates[pid] = null;
                     delete playerStates[pid];
-                   
+
                     connection.release();
                 });
             })
         } else {
-            
+
         }
 	console.log('Starting new fork');
 	newFork();
@@ -90,7 +90,8 @@ server.on('newClient', (client) => {
         if (!payload['uniquenick'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
 
         GsUtil.dbConnection(db, (err, connection) => {
-            connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) => {
+            if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+            connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) =>
                 if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
                 result = result[0];
 
@@ -160,6 +161,7 @@ server.on('newClient', (client) => {
     client.on('command.updatepro', (payload) => {
         if (!payload.countrycode) { return child.writeError(0, 'Invalid query! No country code specified.'); }
         GsUtil.dbConnection(db, (err, connection) => {
+            if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
             connection.query('UPDATE web_users SET game_country=? WHERE id=?', [payload.countrycode, client.state.battlelogId], function(err, result) {
                 Log('UpdateProfile', client.socket.remoteAddress, client.state.plyName);
                 connection.release();
@@ -181,8 +183,9 @@ server.on('newClient', (client) => {
         if (client.state.hasLogin) {
             Log('Logout', client.state.plyName, client.socket.remoteAddress);
             GsUtil.dbConnection(db, (err, connection) => {
-                connection.query('UPDATE web_users SET game_session = 0 WHERE id=?', [blId]);
+                if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
                 process.send({type: 'clientLogout', id: blId});
+                connection.query('UPDATE web_users SET game_session = 0 WHERE id=?', [blId]);
                 connection.release();
             });
         } else {
