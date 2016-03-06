@@ -6,10 +6,11 @@ var cluster = require('cluster'),
     crypto = require('crypto'),
     md5 = require('md5'),
     fs = require('fs'),
+    tls = require('tls'),
     chalk = require('chalk');
 
 const GsUtil = require('../lib/GsUtil');
-const GsSocket = require('../lib/GsSocket');
+const FeslServer = require('../lib/FeslServer');
 
 function Log() {
     console.log(GsUtil.Time() + chalk.green('FESL') + '\t\t' + Array.prototype.join.call(arguments, '\t'));
@@ -27,9 +28,9 @@ if (cluster.isMaster) {
         newFork();
     }
 
-    cluster.on('exit', (worker, code, signal) => {
+    cluster.on('exit', function(worker, code, signal) {
         var pid = worker.process.pid;
-        Log(chalk.red(`Worker ${pid} died!`));
+        Log(chalk.red('Worker ' + pid + ' died!'));
         newFork();
     });
 
@@ -39,14 +40,13 @@ if (cluster.isMaster) {
 var db = GsUtil.dbPool();
 
 // Gamespy Search Provider Server
-var server = new GsSocket(chalk.magenta('FE'), {
+var server = new FeslServer(chalk.magenta('FE'), {
     port: 18300,
-    tls: true,
-    tlsKey: fs.readFileSync('ssl/private.key'),
-    tlsCert: fs.readFileSync('ssl/public.crt')
+    tlsKey: fs.readFileSync('ssl/good_key.pem'),
+    tlsCert: fs.readFileSync('ssl/good_public.crt')
 });
 
 // When we get a new connection
-server.on('newClient', (client) => {
+server.on('newClient', function (client) {
     Log('New FESL Client?!')
 })
