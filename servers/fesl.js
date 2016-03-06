@@ -7,7 +7,8 @@ var cluster = require('cluster'),
     md5 = require('md5'),
     fs = require('fs'),
     tls = require('tls'),
-    chalk = require('chalk');
+    chalk = require('chalk'),
+    dateformat = require('dateformat');
 
 const GsUtil = require('../lib/GsUtil');
 const FeslServer = require('../lib/FeslServer');
@@ -49,4 +50,16 @@ var server = new FeslServer(chalk.magenta('FE'), {
 // When we get a new connection
 server.on('newClient', function (client) {
     Log('New FESL Client?!')
+
+    client.write('fsys', {
+        TXN: 'Hello',
+        'domainPartition.domain': 'eagames',
+        messengerIp: 'messaging.ea.com',
+        messengerPort: '13505',
+        'domainPartition.subDomain': 'bf2142',
+        'activityTimeoutSecs': '0',
+        'curTime': dateFormat(now, 'mmm-dd-  yy '),
+        theaterIp: 'bf2142-pc.theater.ea.com',
+        theaterPort: '18305'
+    })
 })
