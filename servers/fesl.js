@@ -83,13 +83,13 @@ server.on('newClient', function (client) {
         sendObj[payload.name + '.[]'] = 0*/
         var sendObj = {
             TXN: 'Login',
-            lkey: '',
+            lkey: md5(new Date()),
             nuid: 'spencer@sf-n.com',
             displayName: payload.user,
             profileId: 1,
             userId: 1
         }
-        client.write('acct', sendObj, type2)
+        client.write('acct', sendObj, 0x80000002)
     });
 
     client.on('close', function() {
