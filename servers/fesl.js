@@ -8,7 +8,7 @@ var cluster = require('cluster'),
     fs = require('fs'),
     tls = require('tls'),
     chalk = require('chalk'),
-    dateformat = require('dateformat');
+    dateFormat = require('dateformat');
 
 const GsUtil = require('../lib/GsUtil');
 const FeslServer = require('../lib/FeslServer');
@@ -58,8 +58,42 @@ server.on('newClient', function (client) {
         messengerPort: '13505',
         'domainPartition.subDomain': 'bf2142',
         'activityTimeoutSecs': '0',
-        'curTime': dateFormat(now, 'mmm-dd-  yy '),
+        'curTime': dateFormat(new Date(), 'mmm-dd-  yy '),
         theaterIp: 'bf2142-pc.theater.ea.com',
         theaterPort: '18305'
     })
+
+    var memCheck = function() {
+        if (!client) return;
+        client.write('fsys', {
+            TXN: 'MemCheck',
+            'memcheck.[]': 0,
+            type: 0,
+            salt: Math.floor(Date.now()/1000)
+        }, 0x80000000);
+    };
+
+    client.pingInterval = setInterval(memCheck, 10000);
+    memCheck();
+
+    client.on('acct.Login', function(payload, type2) {
+        /*var sendObj = {
+            TXN: payload.name
+        }
+        sendObj[payload.name + '.[]'] = 0*/
+        var sendObj = {
+            TXN: 'Login',
+            lkey: '',
+            nuid: 'spencer@sf-n.com',
+            displayName: payload.user,
+            profileId: 1,
+            userId: 1
+        }
+        client.write('acct', sendObj, type2)
+    });
+
+    client.on('close', function() {
+        clearInterval(client.pingInterval);
+    })
+
 })
