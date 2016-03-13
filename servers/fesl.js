@@ -81,16 +81,22 @@ server.on('newClient', function (client) {
             TXN: payload.name
         }
         sendObj[payload.name + '.[]'] = 0
-        /*var sendObj = {
-            TXN: 'Login',
-            lkey: md5(new Date()),
-            nuid: 'spencer@sf-n.com',
-            displayName: payload.user,
-            profileId: 1,
-            userId: 1
-        }*/
-        client.write('acct', sendObj, 0x80000002)
+        client.write('acct', sendObj, type2)
     });
+
+    client.on('subs.GetEntitlementByBundle', function(payload, type2) {
+        client.write('subs', {
+            TXN: 'GetEntitlementByBundle',
+            'EntitlementByBundle.[]': 0
+        }, type2)
+    })
+
+    client.on('dobj.GetObjectInventory', function(payload, type2) {
+        client.write('dobj', {
+            TXN: 'GetObjectInventory',
+            'ObjectInventory.[]': 0
+        }, type2)
+    })
 
     client.on('close', function() {
         clearInterval(client.pingInterval);
