@@ -116,6 +116,21 @@ server.on('newClient', function (client) {
             userId: 1,
             profileId: 1
         }, type2)
+    });
+
+    client.on('acct.GetAccount', function(payload, type2) {
+        client.write('acct', {
+            TXN: 'GetAccount',
+            nuid: client.state.username + '@example.com',
+            DOBDay: 1,
+            DOBMonth: 1,
+            DOBYear: 1980,
+            userId: 1,
+            globalOptin: 0,
+            thidPartyOptin: 0,
+            language: 'en',
+            country: 'US'
+        }, type2);
     })
 
     client.on('close', function() {
