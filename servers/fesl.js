@@ -61,7 +61,7 @@ server.on('newClient', function (client) {
         'curTime': dateFormat(new Date(), 'mmm-dd-  yy '),
         theaterIp: 'bf2142-pc.theater.ea.com',
         theaterPort: '18305'
-    })
+    }, 0x80000001)
 
     var memCheck = function() {
         if (!client) return;
@@ -77,18 +77,18 @@ server.on('newClient', function (client) {
     memCheck();
 
     client.on('acct.Login', function(payload, type2) {
-        /*var sendObj = {
+        var sendObj = {
             TXN: payload.name
         }
-        sendObj[payload.name + '.[]'] = 0*/
-        var sendObj = {
+        sendObj[payload.name + '.[]'] = 0
+        /*var sendObj = {
             TXN: 'Login',
             lkey: md5(new Date()),
             nuid: 'spencer@sf-n.com',
             displayName: payload.user,
             profileId: 1,
             userId: 1
-        }
+        }*/
         client.write('acct', sendObj, 0x80000002)
     });
 
