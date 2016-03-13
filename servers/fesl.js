@@ -89,14 +89,21 @@ server.on('newClient', function (client) {
             TXN: 'GetEntitlementByBundle',
             'EntitlementByBundle.[]': 0
         }, type2)
-    })
+    });
 
     client.on('dobj.GetObjectInventory', function(payload, type2) {
         client.write('dobj', {
             TXN: 'GetObjectInventory',
             'ObjectInventory.[]': 0
         }, type2)
-    })
+    });
+
+    client.on('acct.GetSubAccounts', function(payload, type2) {
+        client.write('acct', {
+            TXN: 'GetSubAccounts',
+            'subAccounts.[]': 0
+        }, type2)
+    });
 
     client.on('close', function() {
         clearInterval(client.pingInterval);
