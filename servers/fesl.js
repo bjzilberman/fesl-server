@@ -51,6 +51,8 @@ var server = new FeslServer(chalk.magenta('FE'), {
 server.on('newClient', function (client) {
     Log('New FESL Client?!')
 
+    client.state.lkey = md5(new Date());
+
     client.write('fsys', {
         TXN: 'Hello',
         'domainPartition.domain': 'eagames',
@@ -77,6 +79,7 @@ server.on('newClient', function (client) {
     memCheck();
 
     client.on('acct.Login', function(payload, type2) {
+        client.state.username = payload.name;
         var sendObj = {
             TXN: payload.name
         }
@@ -101,9 +104,19 @@ server.on('newClient', function (client) {
     client.on('acct.GetSubAccounts', function(payload, type2) {
         client.write('acct', {
             TXN: 'GetSubAccounts',
-            'subAccounts.[]': 0
+            'subAccounts.[]': 1,
+            'subAccounts.0': client.state.username
         }, type2)
     });
+
+    client.on('acct.LoginSubAccount', function(payload, type2) {
+        client.write('acct', {
+            TXN: 'LoginSubAccount',
+            lkey: client.state.lkey,
+            userId: 1,
+            profileId: 1
+        }, type2)
+    })
 
     client.on('close', function() {
         clearInterval(client.pingInterval);
