@@ -8,7 +8,7 @@ var cluster = require('cluster'),
     fs = require('fs'),
     tls = require('tls'),
     chalk = require('chalk'),
-    dateformat = require('dateformat');
+    dateFormat = require('dateformat');
 
 const GsUtil = require('../lib/GsUtil');
 const FeslServer = require('../lib/FeslServer');
@@ -51,6 +51,8 @@ var server = new FeslServer(chalk.magenta('FE'), {
 server.on('newClient', function (client) {
     Log('New FESL Client?!')
 
+    client.state.lkey = md5(new Date());
+
     client.write('fsys', {
         TXN: 'Hello',
         'domainPartition.domain': 'eagames',
@@ -58,8 +60,81 @@ server.on('newClient', function (client) {
         messengerPort: '13505',
         'domainPartition.subDomain': 'bf2142',
         'activityTimeoutSecs': '0',
-        'curTime': dateFormat(now, 'mmm-dd-  yy '),
+        'curTime': dateFormat(new Date(), 'mmm-dd-  yy '),
         theaterIp: 'bf2142-pc.theater.ea.com',
         theaterPort: '18305'
+    }, 0x80000001)
+
+    var memCheck = function() {
+        if (!client) return;
+        client.write('fsys', {
+            TXN: 'MemCheck',
+            'memcheck.[]': 0,
+            type: 0,
+            salt: Math.floor(Date.now()/1000)
+        }, 0x80000000);
+    };
+
+    client.pingInterval = setInterval(memCheck, 10000);
+    memCheck();
+
+    client.on('acct.Login', function(payload, type2) {
+        client.state.username = payload.name;
+        var sendObj = {
+            TXN: payload.name
+        }
+        sendObj[payload.name + '.[]'] = 0
+        client.write('acct', sendObj, type2)
+    });
+
+    client.on('subs.GetEntitlementByBundle', function(payload, type2) {
+        client.write('subs', {
+            TXN: 'GetEntitlementByBundle',
+            'EntitlementByBundle.[]': 0
+        }, type2)
+    });
+
+    client.on('dobj.GetObjectInventory', function(payload, type2) {
+        client.write('dobj', {
+            TXN: 'GetObjectInventory',
+            'ObjectInventory.[]': 0
+        }, type2)
+    });
+
+    client.on('acct.GetSubAccounts', function(payload, type2) {
+        client.write('acct', {
+            TXN: 'GetSubAccounts',
+            'subAccounts.[]': 1,
+            'subAccounts.0': client.state.username
+        }, type2)
+    });
+
+    client.on('acct.LoginSubAccount', function(payload, type2) {
+        client.write('acct', {
+            TXN: 'LoginSubAccount',
+            lkey: client.state.lkey,
+            userId: 1,
+            profileId: 1
+        }, type2)
+    });
+
+    client.on('acct.GetAccount', function(payload, type2) {
+        client.write('acct', {
+            TXN: 'GetAccount',
+            nuid: client.state.username + '@example.com',
+            DOBDay: 1,
+            DOBMonth: 1,
+            DOBYear: 1980,
+            userId: 1,
+            globalOptin: 0,
+            thidPartyOptin: 0,
+            language: 'en',
+            country: 'US'
+        }, type2);
     })
+
+    client.on('close', function() {
+        clearInterval(client.pingInterval);
+    })
+
 })

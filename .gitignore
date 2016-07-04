@@ -1,3 +1,7 @@
 node_modules
 config.json
+<<<<<<< HEAD
 node*
+=======
+node.exe
+>>>>>>> fesl-dev
