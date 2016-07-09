@@ -91,7 +91,7 @@ server.on('newClient', (client) => {
 
         GsUtil.dbConnection(db, (err, connection) => {
             if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
-            connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) =>
+            connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) => {
                 if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
                 result = result[0];
 

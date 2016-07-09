@@ -80,11 +80,42 @@ server.on('newClient', function (client) {
 
     client.on('acct.Login', function(payload, type2) {
         client.state.username = payload.name;
-        var sendObj = {
-            TXN: payload.name
-        }
-        sendObj[payload.name + '.[]'] = 0
-        client.write('acct', sendObj, type2)
+
+
+        GsUtil.dbConnection(db, (err, connection) => {
+            if (err || !connection) { console.log(err); return connection.release() }
+            connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['name']], (err, result) => {
+                if (!result || result.length == 0) {
+                    connection.release();
+                    return client.write('acct', {
+                        TXN: 'Login',
+                        'localizedMessage':'The username was was not found in the database.',
+                        'errorContainer.[]': 0,
+                        'errorCode':101
+                    }, type2);
+                    // write output error here
+                } else {
+                    result = result[0];
+                    if (md5(payload.password) !== result.password) {
+                        connection.release();
+                        return client.write('acct', {
+                            TXN: 'Login',
+                            'localizedMessage':'The password was not correct.',
+                            'errorContainer.[]': 0,
+                            'errorCode':101
+                        }, type2);
+                    } else {
+                        client.state.pid = result.pid;
+                        var sendObj = {
+                            TXN: payload.name
+                        }
+                        sendObj[payload.name + '.[]'] = 0
+                        client.write('acct', sendObj, type2)
+                    }
+                }
+            });
+        });
+
     });
 
     client.on('subs.GetEntitlementByBundle', function(payload, type2) {
@@ -132,6 +163,22 @@ server.on('newClient', function (client) {
             country: 'US'
         }, type2);
     })
+
+    client.on('acct.GameSpyPreAuth', function(payload, type2) {
+        var challenge = GsUtil.bf2Random(7, 'abcdefghijklmnopqrstuvwxyz');
+        var token = GsUtil.bf2Random(90, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+        GsUtil.dbConnection(db, (err, connection) => {
+            if (err || !connection) { console.log(err); return connection.release() }
+            connection.query('UPDATE web_users SET fesl_token = ? WHERE pid = ?', [token, client.state.pid], (err, result) => {
+                connection.release();
+                client.write('acct', {
+                    TXN: 'GameSpyPreAuth',
+                    challenge: challenge,
+                    token: token
+                }, type2);
+            });
+        });
+    });
 
     client.on('close', function() {
         clearInterval(client.pingInterval);
