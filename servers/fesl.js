@@ -117,7 +117,9 @@ server.on('newClient', function (client) {
         });
 
     });
-
+    /*
+        Entitlement stuff... emtpy
+    */
     client.on('subs.GetEntitlementByBundle', function(payload, type2) {
         client.write('subs', {
             TXN: 'GetEntitlementByBundle',
@@ -131,6 +133,10 @@ server.on('newClient', function (client) {
             'ObjectInventory.[]': 0
         }, type2)
     });
+
+    /*
+        Sub account/login
+    */
 
     client.on('acct.GetSubAccounts', function(payload, type2) {
         client.write('acct', {
