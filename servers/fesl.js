@@ -111,6 +111,7 @@ server.on('newClient', function (client) {
                         }
                         sendObj[payload.name + '.[]'] = 0
                         client.write('acct', sendObj, type2)
+                        connection.release();
                     }
                 }
             });
@@ -158,6 +159,7 @@ server.on('newClient', function (client) {
               }
               console.log(JSON.stringify(sendObj));
               client.write('acct', sendObj, type2)
+              connection.release();
           });
       });
     });
