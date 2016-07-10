@@ -166,15 +166,15 @@ server.on('newClient', function (client) {
 
     client.on('acct.GameSpyPreAuth', function(payload, type2) {
         var challenge = GsUtil.bf2Random(7, 'abcdefghijklmnopqrstuvwxyz');
-        var token = GsUtil.bf2Random(90, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+        var ticket = GsUtil.bf2Random(90, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         GsUtil.dbConnection(db, (err, connection) => {
             if (err || !connection) { console.log(err); return connection.release() }
-            connection.query('UPDATE web_users SET fesl_token = ? WHERE pid = ?', [token, client.state.pid], (err, result) => {
+            connection.query('UPDATE web_users SET fesl_token = ? WHERE pid = ?', [ticket, client.state.pid], (err, result) => {
                 connection.release();
                 client.write('acct', {
                     TXN: 'GameSpyPreAuth',
                     challenge: challenge,
-                    token: token
+                    ticket: ticket
                 }, type2);
             });
         });

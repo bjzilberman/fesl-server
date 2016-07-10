@@ -85,6 +85,61 @@ server.on('newClient', (client) => {
 
     // Process Login Requests
     client.on('command.login', (payload) => {
+
+        // handle 2142
+        if (payload && payload.gamename == 'stella') {
+            client.state.clientChallenge = payload['challenge'] || undefined;
+            client.state.clientResponse = payload['response'] || undefined;
+            if (!payload['authtoken'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
+            GsUtil.dbConnection(db, (err, connection) => {
+                if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+                connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE fesl_token = ?', [payload['authtoken']], (err, result) => {
+                    if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
+                    result = result[0];
+                    if (!client) {
+                        connection.release();
+                        return console.log("Client disappeared during login");
+                    }
+                    client.state.battlelogId = result.id;
+                    client.state.plyName = result.username;
+                    client.state.plyEmail = result.email;
+                    client.state.plyCountry = result.game_country;
+                    client.state.plyPid = result.pid;
+
+                    var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
+                    /*if (client.state.clientResponse !== responseVerify) {
+                        Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
+                        connection.release();
+                        return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
+                    }*/
+
+                    // Generate a session key
+                    var len = client.state.plyName.length;
+                    var nameIndex = 0;
+                    var session = 0;
+                    while(len-- != 0) {
+                        session = GsUtil.crcLookup[((client.state.plyName.charCodeAt(nameIndex) ^ session) & 0xff) % 256] ^ (session >>= 8);
+                        nameIndex++;
+                    }
+
+                    Log('Login Success', client.socket.remoteAddress, client.state.plyName)
+                    client.write(util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
+                        session,
+                        md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
+                        client.state.plyPid, client.state.plyPid,
+                        client.state.plyName,
+                        GsUtil.bf2Random(22)
+                    ));
+
+                    connection.query('UPDATE web_users SET game_session = 1 WHERE id=?', [result.id]);
+                    process.send({type: 'clientLogin', id: result.id});
+                    client.state.hasLogin = true;
+                    connection.release();
+                });
+            });
+            return;
+        }
+
         client.state.clientChallenge = payload['challenge'] || undefined;
         client.state.clientResponse = payload['response'] || undefined;
         if (!payload['uniquenick'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
