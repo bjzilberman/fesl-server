@@ -105,7 +105,7 @@ server.on('newClient', function (client) {
                             'errorCode':101
                         }, type2);
                     } else {
-                        client.state.pid = result.pid;
+                        client.state.pid = result.id;
                         var sendObj = {
                             TXN: payload.name
                         }
@@ -133,11 +133,27 @@ server.on('newClient', function (client) {
     });
 
     client.on('acct.GetSubAccounts', function(payload, type2) {
-        client.write('acct', {
-            TXN: 'GetSubAccounts',
-            'subAccounts.[]': 1,
-            'subAccounts.0': client.state.username
-        }, type2)
+
+      GsUtil.dbConnection(db, (err, connection) => {
+          if (err || !connection) { console.log(err); return connection.release() }
+          connection.query('SELECT pid, nickname FROM revive_soldiers WHERE web_id = ? AND game = ?', [client.state.pid, 'stella'], (err, result) => {
+              if (!result || result.length == 0) {
+                console.log("no soldiers")
+                  // write output error here
+              } else {
+                  var sendObj = {
+                      TXN: 'GetSubAccounts',
+                      'subAccounts.[]': 1
+                  }
+                  for (var i = 0; i < result.length; i++) {
+                    subAccount = "subAccounts." + i;
+                    sendObj[subAccount] = result[i].nickname;
+                  }
+              }
+              console.log(JSON.stringify(sendObj));
+              client.write('acct', sendObj, type2)
+          });
+      });
     });
 
     client.on('acct.LoginSubAccount', function(payload, type2) {
@@ -169,7 +185,7 @@ server.on('newClient', function (client) {
         var ticket = GsUtil.bf2Random(90, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         GsUtil.dbConnection(db, (err, connection) => {
             if (err || !connection) { console.log(err); return connection.release() }
-            connection.query('UPDATE web_users SET fesl_token = ? WHERE pid = ?', [ticket, client.state.pid], (err, result) => {
+            connection.query('UPDATE revive_soldiers SET fesl_token = ? WHERE web_id = ? AND game = "stella"', [ticket, client.state.pid], (err, result) => {
                 connection.release();
                 client.write('acct', {
                     TXN: 'GameSpyPreAuth',
