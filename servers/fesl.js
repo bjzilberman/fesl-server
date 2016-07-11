@@ -136,22 +136,55 @@ server.on('newClient', function (client) {
 
       GsUtil.dbConnection(db, (err, connection) => {
           if (err || !connection) { console.log(err); return connection.release() }
-          connection.query('SELECT pid, nickname FROM revive_soldiers WHERE web_id = ? AND game = ?', [client.state.pid, 'stella'], (err, result) => {
+          connection.query('SELECT pid, nickname FROM revive_soldiers WHERE web_id = ? AND game = ? AND deleted != 1', [client.state.pid, 'stella'], (err, result) => {
+              var sendObj = {
+                  TXN: 'GetSubAccounts',
+                  'subAccounts.[]': 0
+              }
               if (!result || result.length == 0) {
                 console.log("no soldiers")
                   // write output error here
               } else {
-                  var sendObj = {
-                      TXN: 'GetSubAccounts',
-                      'subAccounts.[]': 1
-                  }
                   for (var i = 0; i < result.length; i++) {
                     subAccount = "subAccounts." + i;
                     sendObj[subAccount] = result[i].nickname;
+                    sendObj['subAccounts.[]'] = sendObj['subAccounts.[]'] + 1;
                   }
               }
-              console.log(JSON.stringify(sendObj));
               client.write('acct', sendObj, type2)
+          });
+      });
+    });
+
+    client.on('acct.AddSubAccount', function(payload, type2) {
+      GsUtil.dbConnection(db, (err, connection) => {
+          if (err || !connection) { console.log(err); return connection.release() }
+          connection.query('INSERT INTO revive_soldiers (web_id, nickname, game) values (?, ?, ?)', [client.state.pid, payload.name, 'stella'], (err, result) => {
+              if (err) {
+                  // write output error here
+              } else {
+                var sendObj = {
+                    TXN: 'AddSubAccount'
+                }
+                  client.write('acct', sendObj, type2)
+              }
+          });
+      });
+    });
+
+    client.on('acct.DisableSubAccount', function(payload, type2) {
+      GsUtil.dbConnection(db, (err, connection) => {
+        var hashedName = md5(payload.name + new Date());
+          if (err || !connection) { console.log(err); return connection.release() }
+          connection.query('UPDATE revive_soldiers SET nickname = ?, deleted = 1, deleted_name = ? where nickname = ? AND game = ?', [hashedName, payload.name, payload.name, 'stella'], (err, result) => {
+              if (err) {
+                  // write output error here
+              } else {
+                var sendObj = {
+                    TXN: 'DisableSubAccount'
+                }
+                  client.write('acct', sendObj, type2)
+              }
           });
       });
     });
