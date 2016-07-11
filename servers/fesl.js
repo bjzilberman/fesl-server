@@ -111,13 +111,16 @@ server.on('newClient', function (client) {
                         }
                         sendObj[payload.name + '.[]'] = 0
                         client.write('acct', sendObj, type2)
+                        connection.release();
                     }
                 }
             });
         });
 
     });
-
+    /*
+        Entitlement stuff... emtpy
+    */
     client.on('subs.GetEntitlementByBundle', function(payload, type2) {
         client.write('subs', {
             TXN: 'GetEntitlementByBundle',
@@ -131,6 +134,10 @@ server.on('newClient', function (client) {
             'ObjectInventory.[]': 0
         }, type2)
     });
+
+    /*
+        Sub account/login
+    */
 
     client.on('acct.GetSubAccounts', function(payload, type2) {
 
@@ -152,6 +159,7 @@ server.on('newClient', function (client) {
                   }
               }
               client.write('acct', sendObj, type2)
+              connection.release();
           });
       });
     });
