@@ -48,9 +48,9 @@ if (cluster.isMaster) {
         var playerIds = Object.keys(playerStates[pid]);
         Log('    Setting ' + playerIds.length + ' player(s) offline...');
         if (playerIds.length > 0) {
-            var query = 'UPDATE web_users SET game_session = 0 WHERE ';
+            var query = 'UPDATE revive_soldier SET online = 0 WHERE game="stella" AND ';
             for (var i = 0; i < playerIds.length; i++) {
-                query += '`id`=' + playerIds[i];
+                query += '`pid`=' + playerIds[i];
                 if ( i + 1 < playerIds.length ) query += ' OR ';
             }
             GsUtil.dbConnection(db, (err, connection) => {
@@ -134,7 +134,7 @@ server.on('newClient', (client) => {
                         GsUtil.bf2Random(22)
                     ));
 
-                    connection.query('UPDATE web_users SET game_session = 1 WHERE id=?', [result.id]);
+                    connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? and game =?', [result.pid, "stella"]);
                     process.send({type: 'clientLogin', id: result.id});
                     client.state.hasLogin = true;
                     connection.release();
@@ -167,7 +167,7 @@ server.on('newClient', (client) => {
                 if (client.state.clientResponse !== responseVerify) {
                     Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
 		            connection.release();
-                    return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
+                    return client.writeError(256, 'Incorrect password. Visit https://battlelog.co if you forgot your password.');
                 }
 
                 // Generate a session key
@@ -188,7 +188,7 @@ server.on('newClient', (client) => {
                     GsUtil.bf2Random(22)
                 ));
 
-                connection.query('UPDATE web_users SET game_session = 1 WHERE id=?', [result.id]);
+                connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? AND game=?', [result.id, "stella"]);
                 process.send({type: 'clientLogin', id: result.id});
                 client.state.hasLogin = true;
                 connection.release();
@@ -237,13 +237,13 @@ server.on('newClient', (client) => {
 
     client.on('close', () => {
         if (!client.state) return;
-        var blId = client.state.battlelogId;
+        var blId = client.state.plyPid;
         if (client.state.hasLogin) {
-            Log('Logout', client.state.plyName, client.socket.remoteAddress);
+            Log('Logout', client.state.plyName, client.socket.remoteAddress, client.state.plyPid);
             GsUtil.dbConnection(db, (err, connection) => {
                 if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
                 process.send({type: 'clientLogout', id: blId});
-                connection.query('UPDATE web_users SET game_session = 0 WHERE id=?', [blId]);
+                connection.query('UPDATE revive_soldiers SET online = 0 WHERE pid=? AND game=?', [blId, "stella"]);
                 connection.release();
             });
         } else {

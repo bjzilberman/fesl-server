@@ -243,7 +243,7 @@ server.on('newClient', function (client) {
         var ticket = GsUtil.bf2Random(90, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         GsUtil.dbConnection(db, (err, connection) => {
             if (err || !connection) { console.log(err); return connection.release() }
-            connection.query('UPDATE revive_soldiers SET fesl_token = ? WHERE nickname= ? AND game = "stella"', [ticket, client.state.gspid], (err, result) => {
+            connection.query('UPDATE revive_soldiers SET fesl_token = ? WHERE nickname= ? AND game = "stella"', [ticket, unescape(client.state.gspid)], (err, result) => {
                 connection.release();
                 client.write('acct', {
                     TXN: 'GameSpyPreAuth',
