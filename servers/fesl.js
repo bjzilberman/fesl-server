@@ -183,7 +183,7 @@ server.on('newClient', function (client) {
     client.on('acct.DisableSubAccount', function(payload, type2) {
       GsUtil.dbConnection(db, (err, connection) => {
         var hashedName = md5(payload.name + new Date());
-        var time_deleted
+        var time_deleted = Date.now();
           if (err || !connection) { console.log(err); return connection.release() }
           connection.query('UPDATE revive_soldiers SET nickname = ?, deleted = 1, deleted_name = ? where nickname = ? AND game = ?', [hashedName, payload.name, payload.name, 'stella'], (err, result) => {
               if (err) {
