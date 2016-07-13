@@ -84,7 +84,7 @@ server.on('newClient', function (client) {
 
         GsUtil.dbConnection(db, (err, connection) => {
             if (err || !connection) { console.log(err); return connection.release() }
-            connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['name']], (err, result) => {
+            connection.query('SELECT id, pid, username, password, game_country, email, banned FROM web_users WHERE username = ? OR username_16 = ?', [payload['name'], payload['name']], (err, result) => {
                 if (!result || result.length == 0) {
                     connection.release();
                     return client.write('acct', {
@@ -96,14 +96,23 @@ server.on('newClient', function (client) {
                     // write output error here
                 } else {
                     result = result[0];
-                    if (md5(payload.password) !== result.password) {
-                        connection.release();
-                        return client.write('acct', {
-                            TXN: 'Login',
-                            'localizedMessage':'The password was not correct.',
-                            'errorContainer.[]': 0,
-                            'errorCode':101
-                        }, type2);
+                    var password_16 = result.password.substr(0, result.password.length - 16);
+                    if (md5(payload.password) !== result.password && payload.password !== password_16) {
+                      connection.release();
+                      return client.write('acct', {
+                          TXN: 'Login',
+                          'localizedMessage':'The password was not correct.',
+                          'errorContainer.[]': 0,
+                          'errorCode':101
+                      }, type2);
+                    } else if (result.banned == 1) {
+                      connection.release();
+                      return client.write('acct', {
+                          TXN: 'Login',
+                          'localizedMessage':'The username has been banned.',
+                          'errorContainer.[]': 0,
+                          'errorCode':103,
+                      }, type2);
                     } else {
                         client.state.pid = result.id;
                         var sendObj = {
@@ -111,16 +120,13 @@ server.on('newClient', function (client) {
                         }
                         sendObj[payload.name + '.[]'] = 0
                         client.write('acct', sendObj, type2)
-                        connection.release();
                     }
                 }
             });
         });
 
     });
-    /*
-        Entitlement stuff... emtpy
-    */
+
     client.on('subs.GetEntitlementByBundle', function(payload, type2) {
         client.write('subs', {
             TXN: 'GetEntitlementByBundle',
@@ -135,10 +141,6 @@ server.on('newClient', function (client) {
         }, type2)
     });
 
-    /*
-        Sub account/login
-    */
-
     client.on('acct.GetSubAccounts', function(payload, type2) {
 
       GsUtil.dbConnection(db, (err, connection) => {
@@ -149,8 +151,7 @@ server.on('newClient', function (client) {
                   'subAccounts.[]': 0
               }
               if (!result || result.length == 0) {
-                console.log("no soldiers")
-                  // write output error here
+                  // Then ignore this loop
               } else {
                   for (var i = 0; i < result.length; i++) {
                     subAccount = "subAccounts." + i;
@@ -159,7 +160,6 @@ server.on('newClient', function (client) {
                   }
               }
               client.write('acct', sendObj, type2)
-              connection.release();
           });
       });
     });
@@ -183,6 +183,7 @@ server.on('newClient', function (client) {
     client.on('acct.DisableSubAccount', function(payload, type2) {
       GsUtil.dbConnection(db, (err, connection) => {
         var hashedName = md5(payload.name + new Date());
+        var time_deleted
           if (err || !connection) { console.log(err); return connection.release() }
           connection.query('UPDATE revive_soldiers SET nickname = ?, deleted = 1, deleted_name = ? where nickname = ? AND game = ?', [hashedName, payload.name, payload.name, 'stella'], (err, result) => {
               if (err) {
@@ -195,6 +196,21 @@ server.on('newClient', function (client) {
               }
           });
       });
+    });
+    client.on('acct.GetTos', function(payload, type2) {
+        client.write('acct', {
+            data: 'dG9zPSJUZXN0aW5nIHRoaXMgdG8gc2VlIGlmIGl0IHdvcmtzIg==',
+            decodeSize: 37,
+            size: 52
+        }, type2)
+    });
+
+    client.on('acct.GetCountryList', function(payload, type2) {
+        client.write('acct', {
+            data: 'dG9zPSJUZXN0aW5nIHRoaXMgdG8gc2VlIGlmIGl0IHdvcmtzIg==',
+            decodeSize: 37,
+            size: 52
+        }, type2)
     });
 
     client.on('acct.LoginSubAccount', function(payload, type2) {
