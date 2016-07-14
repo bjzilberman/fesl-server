@@ -114,6 +114,7 @@ server.on('newClient', function (client) {
                           'errorCode':103,
                       }, type2);
                     } else {
+                        connection.release();
                         client.state.pid = result.id;
                         var sendObj = {
                             TXN: payload.name
@@ -159,6 +160,7 @@ server.on('newClient', function (client) {
                     sendObj['subAccounts.[]'] = sendObj['subAccounts.[]'] + 1;
                   }
               }
+              connection.release();
               client.write('acct', sendObj, type2)
           });
       });
@@ -176,6 +178,7 @@ server.on('newClient', function (client) {
                 }
                   client.write('acct', sendObj, type2)
               }
+              connection.release();
           });
       });
     });
@@ -194,6 +197,7 @@ server.on('newClient', function (client) {
                 }
                   client.write('acct', sendObj, type2)
               }
+              connection.release();
           });
       });
     });
@@ -250,6 +254,7 @@ server.on('newClient', function (client) {
                     challenge: challenge,
                     ticket: ticket
                 }, type2);
+                connection.release();
             });
         });
     });
