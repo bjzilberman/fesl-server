@@ -103,7 +103,7 @@ server.on('newClient', (client) => {
                         connection.release();
                         return console.log("Client disappeared during login");
                     }
-                    client.state.battlelogId = result.id;
+                    client.state.battlelogId = result.web_id;
                     client.state.plyName = result.username;
                     client.state.plyEmail = result.email;
                     client.state.plyCountry = result.game_country;
@@ -135,7 +135,7 @@ server.on('newClient', (client) => {
                     ));
 
                     connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? and game =?', [result.pid, "stella"]);
-                    process.send({type: 'clientLogin', id: result.id});
+                    process.send({type: 'clientLogin', id: result.pid});
                     client.state.hasLogin = true;
                     connection.release();
                 });
