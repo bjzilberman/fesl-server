@@ -1,5 +1,3 @@
-
-
 // yeh
 var cluster = require('cluster'),
     util = require('util'),
@@ -161,7 +159,7 @@ server.on('newClient', function (client) {
                   }
               }
               connection.release();
-              client.write('acct', sendObj, type2)
+              client.write('acct', sendObj, type2);
           });
       });
     });
@@ -172,13 +170,15 @@ server.on('newClient', function (client) {
           connection.query('INSERT INTO revive_soldiers (web_id, nickname, game) values (?, ?, ?)', [client.state.pid, payload.name, 'stella'], (err, result) => {
               if (err) {
                   // write output error here
+                  connection.release();
               } else {
                 var sendObj = {
                     TXN: 'AddSubAccount'
                 }
-                  client.write('acct', sendObj, type2)
+                client.write('acct', sendObj, type2);
+                connection.release();
               }
-              connection.release();
+
           });
       });
     });
@@ -191,29 +191,30 @@ server.on('newClient', function (client) {
           connection.query('UPDATE revive_soldiers SET nickname = ?, deleted = 1, deleted_name = ? where nickname = ? AND game = ?', [hashedName, payload.name, payload.name, 'stella'], (err, result) => {
               if (err) {
                   // write output error here
+                  connection.release();
               } else {
                 var sendObj = {
                     TXN: 'DisableSubAccount'
                 }
-                  client.write('acct', sendObj, type2)
+                  client.write('acct', sendObj, type2);
+                  connection.release();
               }
-              connection.release();
           });
       });
     });
     client.on('acct.GetTos', function(payload, type2) {
         client.write('acct', {
-            data: 'dG9zPSJUZXN0aW5nIHRoaXMgdG8gc2VlIGlmIGl0IHdvcmtzIg==',
-            decodeSize: 37,
-            size: 52
+            data: 'VE9TPSJQbGVhc2UgZ28gdG8gYmF0dGxlbG9nLmNvIHRvIHJlZ2lzdGVyIGZvciBhIG5ldyBhY2NvdW50LiI=',
+            decodeSize: 62,
+            size: 85
         }, type2)
     });
 
     client.on('acct.GetCountryList', function(payload, type2) {
         client.write('acct', {
-            data: 'dG9zPSJUZXN0aW5nIHRoaXMgdG8gc2VlIGlmIGl0IHdvcmtzIg==',
-            decodeSize: 37,
-            size: 52
+            data: 'VE9TPSJQbGVhc2UgZ28gdG8gYmF0dGxlbG9nLmNvIHRvIHJlZ2lzdGVyIGZvciBhIG5ldyBhY2NvdW50LiI=',
+            decodeSize: 62,
+            size: 85
         }, type2)
     });
 
@@ -248,7 +249,6 @@ server.on('newClient', function (client) {
         GsUtil.dbConnection(db, (err, connection) => {
             if (err || !connection) { console.log(err); return connection.release() }
             connection.query('UPDATE revive_soldiers SET fesl_token = ? WHERE nickname= ? AND game = "stella"', [ticket, unescape(client.state.gspid)], (err, result) => {
-                connection.release();
                 client.write('acct', {
                     TXN: 'GameSpyPreAuth',
                     challenge: challenge,
