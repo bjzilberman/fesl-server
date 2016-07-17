@@ -265,9 +265,25 @@ client.on('command.bdy', (payload) => {
 client.on('command.addbuddy', (payload) => {
     console.log("addbuddy Command");
     console.log(payload);
+    GsUtil.dbConnection(db, (err, connection) => {
+        if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+        var uid = client.state.battlelogId;
+        var fid = payload['newprofileid'];
+        if (client.state.plyPid == fid) { /* handle cannot add friend who is alrdy friend */ }
+        connection.query('INSERT INTO revive_friends (uid, fid) VALUES (?, ?)', [uid, fid], (err, result) => {
+            if (err) {
+                /* probably look for key already exists */
+            }
+
+            // do we write something back?
+            connection.release();
+        });
+    });
 });
 
 client.on('command.delbuddy', (payload) => {
+    console.log("delbuddy Command");
+    console.log(payload);
     GsUtil.dbConnection(db, (err, connection) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         var uid = client.state.battlelogId;
