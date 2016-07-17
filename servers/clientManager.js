@@ -95,11 +95,8 @@ server.on('newClient', (client) => {
             GsUtil.dbConnection(db, (err, connection) => {
                 if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
                 connection.query('SELECT t1.web_id, t1.pid, t2.username, t2.password, t2.game_country, t2.email FROM revive_soldiers t1 LEFT JOIN web_users t2 ON t1.web_id=t2.id WHERE t1.fesl_token = ?', [payload['authtoken']], (err, result) => {
-                  console.log("was here");
                     if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
                     result = result[0];
-                    console.log(result);
-                    console.log("oh no");
                     if (!client) {
                         connection.release();
                         return console.log("Client disappeared during login");
@@ -126,14 +123,57 @@ server.on('newClient', (client) => {
                         nameIndex++;
                     }
 
-                    Log('Login Success', client.socket.remoteAddress, client.state.plyName)
-                    client.write(util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
+                    Log('Login Success', client.socket.remoteAddress, client.state.plyName);
+                    var sendObj = util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
                         session,
                         md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
                         client.state.plyPid, client.state.plyPid,
                         client.state.plyName,
                         GsUtil.bf2Random(22)
-                    ));
+                    );
+
+
+                    connection.query('SELECT * FROM revive_friends WHERE uid = ?', [client.state.battlelogId], (err, result) => {
+                      if (!result || result.length == 0) {
+                        client.write(sendObj);
+                      } else {
+                        var msg;
+                        async.each(result, function(result, callback) {
+                          connection.query('SELECT pid, online, status, status_msg FROM revive_soldiers WHERE pid = ? AND game = ? LIMIT 1', [result['fid'], "stella"], (err, result) => {
+                            if (!result || result.length == 0) {
+                              console.log('no result');
+                            } else {
+                              if (result[0]['status'] == 'Offline') {
+                                msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'];
+                                sendObj += util.format('\\bm\\100');
+                                sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+
+                                sendObj += util.format('\\final\\');
+                                client.write(sendObj);
+                                console.log(sendObj);
+                                //console.log(sendObj);
+                              } else {
+                                msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0';
+                                sendObj = util.format('\\bm\\100');
+                                sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                                sendObj += util.format('\\final\\');
+                                client.write(sendObj);
+                                console.log(sendObj);
+                                //console.log(sendObj);
+                              }
+
+
+
+                            }
+                            callback();
+                          });
+                        }, function(err) {
+
+                          client.write(sendObj);
+                        });
+                      }
+
+                    });
 
                     connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? and game =?', [result.pid, "stella"]);
                     process.send({type: 'clientLogin', id: result.pid});
@@ -207,30 +247,7 @@ server.on('newClient', (client) => {
       GsUtil.dbConnection(db, (err, connection) => {
           if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
           connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
-            connection.query('SELECT * FROM revive_friends WHERE uid = ?', [client.state.battlelogId], (err, result) => {
-              if (!result || result.length == 0) {
-                sendObj += util.format('\\final\\');
-              } else {
-                var msg;
-                async.each(result, function(result, callback) {
-                  connection.query('SELECT pid, online, status, status_msg FROM revive_soldiers WHERE pid = ? AND game = ? LIMIT 1', [result['fid'], "stella"], (err, result) => {
-                    if (!result || result.length == 0) {
-                    } else {
-                      msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0|qm|0';
-                      var sendObj = util.format('\\bm\\100');
-                      sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
-                      sendObj += util.format('\\final\\');
-                      console.log(sendObj);
-                      client.write(sendObj);
-                    }
-                    callback();
-                  });
-                }, function(err) {
-
-
-                });
-              }
-            });
+            connection.release();
           });
         });
     });
@@ -269,14 +286,15 @@ server.on('newClient', (client) => {
             if (!result || result.length == 0) {
             } else {
               var result = result[0];
-              var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\0\\firstname\\\\lastname\\' +
+              var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\%d\\firstname\\\\lastname\\' +
               '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
                   result.pid,
                   result.nickname,
                   result.pid,
-                  client.state.plyEmail,
+                  result.nickname + '@gmail.com',
                   GsUtil.bf2Random(32),
                   result.nickname,
+                  result.pid,
                   client.state.plyCountry,
                   (client.state.profileSent ? 5 : 2)
               );
