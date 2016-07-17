@@ -1,10 +1,10 @@
 // yeh
 var cluster = require('cluster'),
-    util = require('util'),
-    crypto = require('crypto'),
-    md5 = require('md5'),
-    chalk = require('chalk');
-    async = require('async');
+util = require('util'),
+crypto = require('crypto'),
+md5 = require('md5'),
+chalk = require('chalk');
+async = require('async');
 
 const GsUtil = require('../lib/GsUtil');
 const GsSocket = require('../lib/GsSocket');
@@ -67,15 +67,15 @@ if (cluster.isMaster) {
         } else {
 
         }
-	console.log('Starting new fork');
-	newFork();
+        console.log('Starting new fork');
+        newFork();
     });
 
     return;
 }
 
 /*
-    Child Processies - the SPORKS
+Child Processies - the SPORKS
 */
 
 // Gamespy Login Server
@@ -109,107 +109,10 @@ server.on('newClient', (client) => {
 
                     var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
                     /*if (client.state.clientResponse !== responseVerify) {
-                        Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
-                        connection.release();
-                        return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
-                    }*/
-
-                    // Generate a session key
-                    var len = client.state.plyName.length;
-                    var nameIndex = 0;
-                    var session = 0;
-                    while(len-- != 0) {
-                        session = GsUtil.crcLookup[((client.state.plyName.charCodeAt(nameIndex) ^ session) & 0xff) % 256] ^ (session >>= 8);
-                        nameIndex++;
-                    }
-
-                    Log('Login Success', client.socket.remoteAddress, client.state.plyName);
-                    var sendObj = util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
-                        session,
-                        md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
-                        client.state.plyPid, client.state.plyPid,
-                        client.state.plyName,
-                        GsUtil.bf2Random(22)
-                    );
-
-
-                    connection.query('SELECT * FROM revive_friends WHERE uid = ?', [client.state.battlelogId], (err, result) => {
-                      if (!result || result.length == 0) {
-                        client.write(sendObj);
-                      } else {
-                        var msg;
-                        async.each(result, function(result, callback) {
-                          connection.query('SELECT pid, online, status, status_msg FROM revive_soldiers WHERE pid = ? AND game = ? LIMIT 1', [result['fid'], "stella"], (err, result) => {
-                            if (!result || result.length == 0) {
-                              console.log('no result');
-                            } else {
-                              if (result[0]['status'] == 'Offline') {
-                                msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'];
-                                sendObj += util.format('\\bm\\100');
-                                sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
-
-                                sendObj += util.format('\\final\\');
-                                client.write(sendObj);
-                                console.log(sendObj);
-                                //console.log(sendObj);
-                              } else {
-                                msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0';
-                                sendObj = util.format('\\bm\\100');
-                                sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
-                                sendObj += util.format('\\final\\');
-                                client.write(sendObj);
-                                console.log(sendObj);
-                                //console.log(sendObj);
-                              }
-
-
-
-                            }
-                            callback();
-                          });
-                        }, function(err) {
-
-                          client.write(sendObj);
-                        });
-                      }
-
-                    });
-
-                    connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? and game =?', [result.pid, "stella"]);
-                    process.send({type: 'clientLogin', id: result.pid});
-                    client.state.hasLogin = true;
-                    connection.release();
-                });
-            });
-            return;
-        }
-
-        client.state.clientChallenge = payload['challenge'] || undefined;
-        client.state.clientResponse = payload['response'] || undefined;
-        if (!payload['uniquenick'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
-
-        GsUtil.dbConnection(db, (err, connection) => {
-            if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
-            connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) => {
-                if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
-                result = result[0];
-
-                if (!client) {
-                    connection.release();
-                    return console.log("Client disappeared during login");
-                }
-                client.state.battlelogId = result.id;
-                client.state.plyName = result.username;
-                client.state.plyEmail = result.email;
-                client.state.plyCountry = result.game_country;
-                client.state.plyPid = result.pid;
-
-                var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
-                if (client.state.clientResponse !== responseVerify) {
                     Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
-		            connection.release();
-                    return client.writeError(256, 'Incorrect password. Visit https://battlelog.co if you forgot your password.');
-                }
+                    connection.release();
+                    return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
+                }*/
 
                 // Generate a session key
                 var len = client.state.plyName.length;
@@ -220,139 +123,245 @@ server.on('newClient', (client) => {
                     nameIndex++;
                 }
 
-                Log('Login Success', client.socket.remoteAddress, client.state.plyName)
-                client.write(util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
-                    session,
-                    md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
-                    client.state.plyPid, client.state.plyPid,
-                    client.state.plyName,
-                    GsUtil.bf2Random(22)
-                ));
+                Log('Login Success', client.socket.remoteAddress, client.state.plyName);
+                var sendObj = util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
+                session,
+                md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
+                client.state.plyPid, client.state.plyPid,
+                client.state.plyName,
+                GsUtil.bf2Random(22)
+            );
 
 
-                connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? AND game=?', [result.id, "stella"]);
-                process.send({type: 'clientLogin', id: result.id});
-                client.state.hasLogin = true;
-                connection.release();
+            connection.query('SELECT * FROM revive_friends WHERE uid = ?', [client.state.battlelogId], (err, result) => {
+                if (!result || result.length == 0) {
+                    client.write(sendObj);
+                } else {
+                    var msg;
+                    async.each(result, function(result, callback) {
+                        connection.query('SELECT pid, online, status, status_msg FROM revive_soldiers WHERE pid = ? AND game = ? LIMIT 1', [result['fid'], "stella"], (err, result) => {
+                            if (!result || result.length == 0) {
+                                console.log('no result');
+                            } else {
+                                if (result[0]['status'] == 'Offline') {
+                                    msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'];
+                                    sendObj += util.format('\\bm\\100');
+                                    sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+
+                                    sendObj += util.format('\\final\\');
+                                    client.write(sendObj);
+                                    console.log(sendObj);
+                                    //console.log(sendObj);
+                                } else {
+                                    msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0';
+                                    sendObj = util.format('\\bm\\100');
+                                    sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                                    sendObj += util.format('\\final\\');
+                                    client.write(sendObj);
+                                    console.log(sendObj);
+                                    //console.log(sendObj);
+                                }
+
+
+
+                            }
+                            callback();
+                        });
+                    }, function(err) {
+
+                        client.write(sendObj);
+                    });
+                }
+
             });
-        })
-    })
 
-    /*client.on('command', (name, payload) => {
-        Log('Raw Command: ', name, JSON.stringify(payload, true));
-    })*/
-
-    client.on('command.status', (payload) => {
-
-      GsUtil.dbConnection(db, (err, connection) => {
-          if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
-          connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
+            connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? and game =?', [result.pid, "stella"]);
+            process.send({type: 'clientLogin', id: result.pid});
+            client.state.hasLogin = true;
             connection.release();
-          });
         });
     });
+    return;
+}
 
-    client.on('command.bm', (payload) => {
-      console.log("bm Command");
-      console.log(payload);
+client.state.clientChallenge = payload['challenge'] || undefined;
+client.state.clientResponse = payload['response'] || undefined;
+if (!payload['uniquenick'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
+
+GsUtil.dbConnection(db, (err, connection) => {
+    if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+    connection.query('SELECT id, pid, username, password, game_country, email FROM web_users WHERE username = ?', [payload['uniquenick']], (err, result) => {
+        if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
+        result = result[0];
+
+        if (!client) {
+            connection.release();
+            return console.log("Client disappeared during login");
+        }
+        client.state.battlelogId = result.id;
+        client.state.plyName = result.username;
+        client.state.plyEmail = result.email;
+        client.state.plyCountry = result.game_country;
+        client.state.plyPid = result.pid;
+
+        var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
+        if (client.state.clientResponse !== responseVerify) {
+            Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
+            connection.release();
+            return client.writeError(256, 'Incorrect password. Visit https://battlelog.co if you forgot your password.');
+        }
+
+        // Generate a session key
+        var len = client.state.plyName.length;
+        var nameIndex = 0;
+        var session = 0;
+        while(len-- != 0) {
+            session = GsUtil.crcLookup[((client.state.plyName.charCodeAt(nameIndex) ^ session) & 0xff) % 256] ^ (session >>= 8);
+            nameIndex++;
+        }
+
+        Log('Login Success', client.socket.remoteAddress, client.state.plyName)
+        client.write(util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
+        session,
+        md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
+        client.state.plyPid, client.state.plyPid,
+        client.state.plyName,
+        GsUtil.bf2Random(22)
+    ));
+
+
+    connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? AND game=?', [result.id, "stella"]);
+    process.send({type: 'clientLogin', id: result.id});
+    client.state.hasLogin = true;
+    connection.release();
+});
+})
+})
+
+/*client.on('command', (name, payload) => {
+Log('Raw Command: ', name, JSON.stringify(payload, true));
+})*/
+
+client.on('command.status', (payload) => {
+
+    GsUtil.dbConnection(db, (err, connection) => {
+        if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+        connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
+            connection.release();
+        });
     });
+});
 
-    client.on('command.bdy', (payload) => {
-      console.log("bdy Command");
-      console.log(payload);
+client.on('command.bm', (payload) => {
+    console.log("bm Command");
+    console.log(payload);
+});
+
+client.on('command.bdy', (payload) => {
+    console.log("bdy Command");
+    console.log(payload);
+});
+
+client.on('command.addbuddy', (payload) => {
+    console.log("addbuddy Command");
+    console.log(payload);
+});
+
+client.on('command.delbuddy', (payload) => {
+    GsUtil.dbConnection(db, (err, connection) => {
+        if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+        var uid = client.state.battlelogId;
+        var fid = payload['delprofileid'];
+        connection.query('DELETE FROM revive_friends WHERE uid=? AND fid=?', [uid, fid], (err, result) => {
+
+            // do we write something back?
+
+            connection.release();
+        });
     });
+});
 
-    client.on('command.addbuddy', (payload) => {
-      console.log("addbuddy Command");
-      console.log(payload);
-    });
+client.on('command.authadd', (payload) => {
+    console.log("authadd Command");
+    console.log(payload);
+});
 
-    client.on('command.delbuddy', (payload) => {
-      console.log("delbuddy Command");
-      console.log(payload);
-    });
-
-    client.on('command.authadd', (payload) => {
-      console.log("authadd Command");
-      console.log(payload);
-    });
-
-    client.on('command.getprofile', (payload) => {
-      console.log(payload);
-      GsUtil.dbConnection(db, (err, connection) => {
-          if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
-          connection.query('SELECT * FROM revive_soldiers WHERE pid = ? AND game= ?', [payload.profileid, "stella"], (err, result) => {
+client.on('command.getprofile', (payload) => {
+    console.log(payload);
+    GsUtil.dbConnection(db, (err, connection) => {
+        if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+        connection.query('SELECT * FROM revive_soldiers WHERE pid = ? AND game= ?', [payload.profileid, "stella"], (err, result) => {
             console.log(result);
             if (!result || result.length == 0) {
             } else {
-              var result = result[0];
-              var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\%d\\firstname\\\\lastname\\' +
-              '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
-                  result.pid,
-                  result.nickname,
-                  result.pid,
-                  result.nickname + '@gmail.com',
-                  GsUtil.bf2Random(32),
-                  result.nickname,
-                  result.pid,
-                  client.state.plyCountry,
-                  (client.state.profileSent ? 5 : 2)
-              );
-              console.log(sendObj);
-              client.write(sendObj);
-              client.state.profileSent = true;
-            }
-          });
-        });
-
-        Log('GetProfile',  client.socket.remoteAddress, client.state.plyName);
-
-    });
-
-    client.on('command.updatepro', (payload) => {
-        if (!payload.countrycode) { return child.writeError(0, 'Invalid query! No country code specified.'); }
-        GsUtil.dbConnection(db, (err, connection) => {
-            if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
-            connection.query('UPDATE web_users SET game_country=? WHERE id=?', [payload.countrycode, client.state.battlelogId], function(err, result) {
-                Log('UpdateProfile', client.socket.remoteAddress, client.state.plyName);
-                connection.release();
-            });
-        });
-    });
-
-    client.on('command.logout', (payload) => {
-        client.close();
-    })
-
-    client.on('command.newuser', (payload) => {
-        client.writeError(516, 'Registration in game is currently unavailable. Please visit battlelog.co to register.');
-    });
-
-    client.on('close', () => {
-        if (!client.state) return;
-        var blId = client.state.plyPid;
-        if (client.state.hasLogin) {
-            Log('Logout', client.state.plyName, client.socket.remoteAddress, client.state.plyPid);
-            GsUtil.dbConnection(db, (err, connection) => {
-                if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
-                process.send({type: 'clientLogout', id: blId});
-                connection.query('UPDATE revive_soldiers SET online = 0, status = ?, status_msg = null WHERE pid=? AND game=?', ["Offline", blId, "stella"]);
-                connection.release();
-            });
-        } else {
-            //Log('Disconnect', client.socket.remoteAddress);
+                var result = result[0];
+                var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\%d\\firstname\\\\lastname\\' +
+                '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
+                result.pid,
+                result.nickname,
+                result.pid,
+                result.nickname + '@gmail.com',
+                GsUtil.bf2Random(32),
+                result.nickname,
+                result.pid,
+                client.state.plyCountry,
+                (client.state.profileSent ? 5 : 2)
+            );
+            console.log(sendObj);
+            client.write(sendObj);
+            client.state.profileSent = true;
         }
-        client = null;
-        delete client;
-        server.clients.length
-    })
+    });
+});
 
-    // Send a challenge
-    crypto.randomBytes(5, (err, buf) => {
-      var token = buf.toString('hex');
-      if (client !== null) {
-          client.state.serverChallenge = token;
-          client.write(util.format('\\lc\\1\\challenge\\%s\\id\\1\\final\\', token));
-      }
-    })
+Log('GetProfile',  client.socket.remoteAddress, client.state.plyName);
+
+});
+
+client.on('command.updatepro', (payload) => {
+    if (!payload.countrycode) { return child.writeError(0, 'Invalid query! No country code specified.'); }
+    GsUtil.dbConnection(db, (err, connection) => {
+        if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+        connection.query('UPDATE web_users SET game_country=? WHERE id=?', [payload.countrycode, client.state.battlelogId], function(err, result) {
+            Log('UpdateProfile', client.socket.remoteAddress, client.state.plyName);
+            connection.release();
+        });
+    });
+});
+
+client.on('command.logout', (payload) => {
+    client.close();
+})
+
+client.on('command.newuser', (payload) => {
+    client.writeError(516, 'Registration in game is currently unavailable. Please visit battlelog.co to register.');
+});
+
+client.on('close', () => {
+    if (!client.state) return;
+    var blId = client.state.plyPid;
+    if (client.state.hasLogin) {
+        Log('Logout', client.state.plyName, client.socket.remoteAddress, client.state.plyPid);
+        GsUtil.dbConnection(db, (err, connection) => {
+            if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
+            process.send({type: 'clientLogout', id: blId});
+            connection.query('UPDATE revive_soldiers SET online = 0, status = ?, status_msg = null WHERE pid=? AND game=?', ["Offline", blId, "stella"]);
+            connection.release();
+        });
+    } else {
+        //Log('Disconnect', client.socket.remoteAddress);
+    }
+    client = null;
+    delete client;
+    server.clients.length
+})
+
+// Send a challenge
+crypto.randomBytes(5, (err, buf) => {
+    var token = buf.toString('hex');
+    if (client !== null) {
+        client.state.serverChallenge = token;
+        client.write(util.format('\\lc\\1\\challenge\\%s\\id\\1\\final\\', token));
+    }
+})
 });
