@@ -4,6 +4,7 @@ var cluster = require('cluster'),
     crypto = require('crypto'),
     md5 = require('md5'),
     chalk = require('chalk');
+    async = require('async');
 
 const GsUtil = require('../lib/GsUtil');
 const GsSocket = require('../lib/GsSocket');
@@ -48,7 +49,7 @@ if (cluster.isMaster) {
         var playerIds = Object.keys(playerStates[pid]);
         Log('    Setting ' + playerIds.length + ' player(s) offline...');
         if (playerIds.length > 0) {
-            var query = 'UPDATE revive_soldier SET online = 0 WHERE game="stella" AND ';
+            var query = 'UPDATE revive_soldiers SET online = 0 WHERE game="stella" AND ';
             for (var i = 0; i < playerIds.length; i++) {
                 query += '`pid`=' + playerIds[i];
                 if ( i + 1 < playerIds.length ) query += ' OR ';
@@ -188,6 +189,7 @@ server.on('newClient', (client) => {
                     GsUtil.bf2Random(22)
                 ));
 
+
                 connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? AND game=?', [result.id, "stella"]);
                 process.send({type: 'clientLogin', id: result.id});
                 client.state.hasLogin = true;
@@ -200,20 +202,93 @@ server.on('newClient', (client) => {
         Log('Raw Command: ', name, JSON.stringify(payload, true));
     })*/
 
+    client.on('command.status', (payload) => {
+
+      GsUtil.dbConnection(db, (err, connection) => {
+          if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+          connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
+            connection.query('SELECT * FROM revive_friends WHERE uid = ?', [client.state.battlelogId], (err, result) => {
+              if (!result || result.length == 0) {
+                sendObj += util.format('\\final\\');
+              } else {
+                var msg;
+                async.each(result, function(result, callback) {
+                  connection.query('SELECT pid, online, status, status_msg FROM revive_soldiers WHERE pid = ? AND game = ? LIMIT 1', [result['fid'], "stella"], (err, result) => {
+                    if (!result || result.length == 0) {
+                    } else {
+                      msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0|qm|0';
+                      var sendObj = util.format('\\bm\\100');
+                      sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                      sendObj += util.format('\\final\\');
+                      console.log(sendObj);
+                      client.write(sendObj);
+                    }
+                    callback();
+                  });
+                }, function(err) {
+
+
+                });
+              }
+            });
+          });
+        });
+    });
+
+    client.on('command.bm', (payload) => {
+      console.log("bm Command");
+      console.log(payload);
+    });
+
+    client.on('command.bdy', (payload) => {
+      console.log("bdy Command");
+      console.log(payload);
+    });
+
+    client.on('command.addbuddy', (payload) => {
+      console.log("addbuddy Command");
+      console.log(payload);
+    });
+
+    client.on('command.delbuddy', (payload) => {
+      console.log("delbuddy Command");
+      console.log(payload);
+    });
+
+    client.on('command.authadd', (payload) => {
+      console.log("authadd Command");
+      console.log(payload);
+    });
+
     client.on('command.getprofile', (payload) => {
+      console.log(payload);
+      GsUtil.dbConnection(db, (err, connection) => {
+          if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+          connection.query('SELECT * FROM revive_soldiers WHERE pid = ? AND game= ?', [payload.profileid, "stella"], (err, result) => {
+            console.log(result);
+            if (!result || result.length == 0) {
+            } else {
+              var result = result[0];
+              var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\0\\firstname\\\\lastname\\' +
+              '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
+                  result.pid,
+                  result.nickname,
+                  result.pid,
+                  client.state.plyEmail,
+                  GsUtil.bf2Random(32),
+                  result.nickname,
+                  client.state.plyCountry,
+                  (client.state.profileSent ? 5 : 2)
+              );
+              console.log(sendObj);
+              client.write(sendObj);
+              client.state.profileSent = true;
+            }
+          });
+        });
+
         Log('GetProfile',  client.socket.remoteAddress, client.state.plyName);
-        client.write(util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\0\\firstname\\\\lastname\\' +
-        '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
-            client.state.plyPid,
-            client.state.plyName,
-            client.state.plyPid,
-            client.state.plyEmail,
-            GsUtil.bf2Random(32),
-            client.state.plyName,
-            client.state.plyCountry,
-            (client.state.profileSent ? 5 : 2)
-        ));
-        client.state.profileSent = true;
+
     });
 
     client.on('command.updatepro', (payload) => {
@@ -243,7 +318,7 @@ server.on('newClient', (client) => {
             GsUtil.dbConnection(db, (err, connection) => {
                 if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
                 process.send({type: 'clientLogout', id: blId});
-                connection.query('UPDATE revive_soldiers SET online = 0 WHERE pid=? AND game=?', [blId, "stella"]);
+                connection.query('UPDATE revive_soldiers SET online = 0, status = ?, status_msg = null WHERE pid=? AND game=?', ["Offline", blId, "stella"]);
                 connection.release();
             });
         } else {
