@@ -299,7 +299,16 @@ client.on('command.delbuddy', (payload) => {
 
 client.on('command.authadd', (payload) => {
     console.log("authadd Command");
-    console.log(payload);
+    GsUtil.dbConnection(db, (err, connection) => {
+        if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+        var uid = client.state.battlelogId;
+        var fid = payload['fromprofileid'];
+        connection.query('UPDATE revive_friends SET (confirmed = 1) WHERE uid=? AND fid=?', [uid, fid], (err, result) => {
+            // do we write something back?
+            // supposed to send a 'bm4'
+            connection.release();
+        });
+    });
 });
 
 client.on('command.getprofile', (payload) => {
