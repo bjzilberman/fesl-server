@@ -125,12 +125,13 @@ server.on('newClient', (client) => {
 
                 Log('Login Success', client.socket.remoteAddress, client.state.plyName);
                 var sendObj = util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
-                session,
-                md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
-                client.state.plyPid, client.state.plyPid,
-                client.state.plyName,
-                GsUtil.bf2Random(22)
-            );
+                    session,
+                    md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
+                    client.state.plyPid, client.state.plyPid,
+                    client.state.plyName,
+                    GsUtil.bf2Random(22)
+                );
+                client.write(sendObj);
 
 
             connection.query('SELECT * FROM revive_friends WHERE uid = ?', [client.state.battlelogId], (err, result) => {
@@ -138,38 +139,38 @@ server.on('newClient', (client) => {
                     client.write(sendObj);
                 } else {
                     var msg;
-                    async.each(result, function(result, callback) {
+                    sendObj = [];
+                    var i;
+                    async.eachSeries(result, function(result, callback) {
                         connection.query('SELECT pid, online, status, status_msg FROM revive_soldiers WHERE pid = ? AND game = ? LIMIT 1', [result['fid'], "stella"], (err, result) => {
-                            if (!result || result.length == 0) {
-                                console.log('no result');
-                            } else {
-                                if (result[0]['status'] == 'Offline') {
-                                    msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'];
-                                    sendObj += util.format('\\bm\\100');
-                                    sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                          if (!result || result.length == 0) {
+                              console.log('no result');
+                          } else {
+                              if (result[0]['status'] == 'Offline') {
+                                  msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'];
+                                  sendObj += util.format('\\bm\\100');
+                                  sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                                  sendObj += util.format('\\final\\');
 
-                                    sendObj += util.format('\\final\\');
-                                    client.write(sendObj);
-                                    console.log(sendObj);
-                                    //console.log(sendObj);
-                                } else {
-                                    msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0';
-                                    sendObj = util.format('\\bm\\100');
-                                    sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
-                                    sendObj += util.format('\\final\\');
-                                    client.write(sendObj);
-                                    console.log(sendObj);
-                                    //console.log(sendObj);
-                                }
+                                  //console.log(sendObj);
+                              } else {
+                                  msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0' ;
+                                  sendObj += util.format('\\bm\\100');
+                                  sendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                                  sendObj += util.format('\\final\\');
+
+                                  //console.log(sendObj);
+                              }
 
 
 
-                            }
-                            callback();
-                        });
+                          }
+                          callback();
+                      });
                     }, function(err) {
 
                         client.write(sendObj);
+                        console.log('friends sent');
                     });
                 }
 
@@ -321,7 +322,7 @@ client.on('command.getprofile', (payload) => {
                 result.nickname,
                 result.pid,
                 client.state.plyCountry,
-                (client.state.profileSent ? 5 : 2)
+                payload.id//(client.state.profileSent ? 5 : 2)
             );
             console.log(sendObj);
             client.write(sendObj);
