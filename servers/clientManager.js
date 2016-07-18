@@ -180,9 +180,14 @@ server.on('newClient', (client) => {
                         } else {
                           sendObj = [];
                           async.each(result, function(result, callback) {
-                            sendObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                              result.msg_type, result.from_pid, result.sentDate, result.msg
-                            );
+                            if (result.read == 0) {
+                              connection.query('UPDATE revive_messages SET `read` = 1 WHERE id=?', [result.id], (err, msg) => {
+                                console.log(err + msg);
+                                sendObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+                                  result.msg_type, result.from_pid, result.sentDate, result.msg
+                                );
+                              });
+                            }
                             callback();
                           }, function(err) {
                             if (err || sendObj.length == 0) {
