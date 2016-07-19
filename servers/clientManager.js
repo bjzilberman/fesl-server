@@ -304,7 +304,7 @@ client.on('command.bm', (payload) => {
             if (err) {
               console.log(err);
             } else if (clients[result.web_id]) {
-              var msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+              var msgObj = util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
                 payload.bm, client.state.plyPid, result.sentDate, payload.msg
               );
               clients[result.web_id].write(msgObj);
