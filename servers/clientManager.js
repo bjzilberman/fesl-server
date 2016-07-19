@@ -108,6 +108,7 @@ server.on('newClient', (client) => {
                     client.state.plyCountry = result.game_country;
                     client.state.plyPid = result.pid;
                     clients[client.state.plyPid] = client;
+                    clients[client.state.battlelogId] = client;
 
                     var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
                     /*if (client.state.clientResponse !== responseVerify) {
@@ -287,8 +288,28 @@ client.on('command.status', (payload) => {
     GsUtil.dbConnection(db, (err, connection) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
-            connection.release();
+          connection.query('SELECT uid from revive_friends WHERE fid = ?', [client.state.plyPid], (err, result) => {
+            async.each(result, function(result, callback) {
+              if (clients[result.uid]) {
+                if (payload.statstring == 'Offline') {
+                    msg = '|s|0|ss|' + payload.statstring;
+                    friendObj += util.format('\\bm\\100');
+                    friendObj += util.format('\\f\\%d\\msg\\%s', client.state.plyPid, msg);
+                    friendObj += util.format('\\final\\');
+                    clients[result.uid].write(friendObj);
+                    //console.log(sendObj);
+                } else {
+                    msg = '|s|1|ss|' + payload.statstring + '|ls|' + payload.locstring + '|ip|0|p|0' ;
+                    friendObj += util.format('\\bm\\100');
+                    friendObj += util.format('\\f\\%d\\msg\\%s', client.state.plyPid, msg);
+                    friendObj += util.format('\\final\\');
+                    clients[result.uid].write(friendObj);
+                }
+              }
+            });
+          });
         });
+        connection.release();
     });
 });
 
@@ -375,7 +396,7 @@ client.on('command.addbuddy', (payload) => {
                         if (err) {
                           console.log(err);
                         } else if (clients[fid]) {
-                          var date = new Date/1000;
+                          var date = Math.floor(Date.now() / 1000);
                           var msg = reason + '|signed|' + sig;
                           var msgObj = util.format('\\bm\\2\\f\\%d\\date\\%d\\msg\\%s\\final\\',
                             pid, date, msg
@@ -421,9 +442,9 @@ client.on('command.authadd', (payload) => {
         var sig = payload['sig'];
         connection.query('UPDATE revive_friends SET confirmed = 1 WHERE sig=?', [sig], (err, result) => {
             if (clients[fid]) {
-              var date = new Date/1000;
+              var date = Math.floor(Date.now() / 1000);
               var msg = '';
-              var msgObj = util.format('\\bm\\4\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+              var msgObj = util.format('\\bm\\1\\f\\%d\\date\\%d\\msg\\%s\\final\\',
                 pid, date, msg
               );
               clients[fid].write(msgObj);
