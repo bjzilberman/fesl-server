@@ -293,14 +293,14 @@ client.on('command.status', (payload) => {
               if (clients[result.uid]) {
                 if (payload.statstring == 'Offline') {
                     msg = '|s|0|ss|' + payload.statstring;
-                    friendObj += util.format('\\bm\\100');
+                    var friendObj = util.format('\\bm\\100');
                     friendObj += util.format('\\f\\%d\\msg\\%s', client.state.plyPid, msg);
                     friendObj += util.format('\\final\\');
                     clients[result.uid].write(friendObj);
                     //console.log(sendObj);
                 } else {
                     msg = '|s|1|ss|' + payload.statstring + '|ls|' + payload.locstring + '|ip|0|p|0' ;
-                    friendObj += util.format('\\bm\\100');
+                    var friendObj = util.format('\\bm\\100');
                     friendObj += util.format('\\f\\%d\\msg\\%s', client.state.plyPid, msg);
                     friendObj += util.format('\\final\\');
                     clients[result.uid].write(friendObj);
