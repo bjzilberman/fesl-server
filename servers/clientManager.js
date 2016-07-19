@@ -363,14 +363,15 @@ client.on('command.addbuddy', (payload) => {
                   }
               });
             } else {
-              connection.query('INSERT INTO revive_friends (uid, fid, fid_uid) VALUES (?, ?, ?)', [uid, fid, result.web_id], (err) => {
+              connection.query('INSERT INTO revive_friends (uid, fid, fid_uid, sig) VALUES (?, ?, ?, ?)', [uid, fid, result.web_id, sig], (err) => {
                   if (err) {
                     //console.log(err);
                     console.log("failure inserting");
                       /* probably look for key already exists */
                   } else {
                       console.log("success");
-                      connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type, sig) VALUES (?, ?, ?, ?, ?, ?)', [pid, uid, fid, result.web_id, reason, 2, sig], (err) => {
+                      console.log(sig);
+                      connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type) VALUES (?, ?, ?, ?, ?, ?)', [pid, uid, fid, result.web_id, reason, 2], (err) => {
                         if (err) {
                           console.log(err);
                         } else if (clients[fid]) {
@@ -418,7 +419,7 @@ client.on('command.authadd', (payload) => {
         var pid = client.state.plyPid;
         var fid = payload['fromprofileid'];
         var sig = payload['sig'];
-        connection.query('UPDATE revive_friends SET (confirmed = 1) WHERE sig=?', [sig], (err, result) => {
+        connection.query('UPDATE revive_friends SET confirmed = 1 WHERE sig=?', [sig], (err, result) => {
             if (clients[fid]) {
               var date = new Date/1000;
               var msg = '';
