@@ -374,7 +374,7 @@ client.on('command.addbuddy', (payload) => {
                         } else if (clients[result.web_id]) {
                           var msg = reason + '|signed|' + md5("1021385" + "1286119");
                           var msgObj = util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                            result.msg_type, result.from_pid, result.sentDate, msg
+                            2, result.from_pid, result.sentDate, msg
                           );
                           clients[result.web_id].write(msgObj);
                         }
