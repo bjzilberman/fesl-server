@@ -325,6 +325,7 @@ client.on('command.addbuddy', (payload) => {
         var uid = client.state.battlelogId;
         var pid = client.state.plyPid
         var fid = payload['newprofileid'];
+        var sig = md5(pid + fid);
         var reason = payload['reason'];
         if (client.state.plyPid == fid) { /* handle cannot add friend who is alrdy friend */ }
         connection.query('SELECT web_id, online, status, status_msg, pid from revive_soldiers where pid = ? AND game = ? LIMIT 1', [fid, "stella"], (err, result) => {
@@ -374,7 +375,7 @@ client.on('command.addbuddy', (payload) => {
                           console.log(err);
                         } else if (clients[fid]) {
                           var date = new Date/1000;
-                          var msg = reason + '|signed|' + md5("1021385" + "1286119");
+                          var msg = reason + '|signed|' + sig;
                           var msgObj = util.format('\\bm\\2\\f\\%d\\date\\%d\\msg\\%s\\final\\',
                             pid, date, msg
                           );
@@ -414,13 +415,15 @@ client.on('command.authadd', (payload) => {
     GsUtil.dbConnection(db, (err, connection) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         var uid = client.state.battlelogId;
+        var pid = client.state.plyPid;
         var fid = payload['fromprofileid'];
-        connection.query('UPDATE revive_friends SET (confirmed = 1) WHERE uid=? AND fid=?', [uid, fid], (err, result) => {
+        var sig = payload['sig'];
+        connection.query('UPDATE revive_friends SET (confirmed = 1) WHERE sig=?', [sig], (err, result) => {
             if (clients[fid]) {
               var date = new Date/1000;
               var msg = '';
               var msgObj = util.format('\\bm\\4\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                client.state.plyPid, date, msg
+                pid, date, msg
               );
               clients[fid].write(msgObj);
               console.log(msgObj);
