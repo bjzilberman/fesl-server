@@ -322,6 +322,7 @@ client.on('command.addbuddy', (payload) => {
     GsUtil.dbConnection(db, (err, connection) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         var uid = client.state.battlelogId;
+        var pid = client.state.plyPid
         var fid = payload['newprofileid'];
         var reason = payload['reason'];
         if (client.state.plyPid == fid) { /* handle cannot add friend who is alrdy friend */ }
@@ -367,7 +368,7 @@ client.on('command.addbuddy', (payload) => {
                       /* probably look for key already exists */
                   } else {
                       console.log("success");
-                      connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type) VALUES (?, ?, ?, ?, ?, ?)', [result.pid, uid, fid, result.web_id, reason, 2], (err) => {
+                      connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type) VALUES (?, ?, ?, ?, ?, ?)', [pid, uid, fid, result.web_id, reason, 2], (err) => {
                         if (err) {
                           console.log(err);
                         } else if (clients[result.web_id]) {
