@@ -372,11 +372,14 @@ client.on('command.addbuddy', (payload) => {
                         if (err) {
                           console.log(err);
                         } else if (clients[result.web_id]) {
+                          var date = new Date/1000;
                           var msg = reason + '|signed|' + md5("1021385" + "1286119");
-                          var msgObj = util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                            2, result.from_pid, result.sentDate, msg
+                          var msgObj = util.format('\\bm\\2\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+                            result.from_pid, date, msg
                           );
                           clients[result.web_id].write(msgObj);
+                          console.log(msgObj);
+                          console.log("live addBuddy sent");
                         }
                       });
                   }
