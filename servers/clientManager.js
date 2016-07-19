@@ -370,7 +370,7 @@ client.on('command.addbuddy', (payload) => {
                       /* probably look for key already exists */
                   } else {
                       console.log("success");
-                      connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type) VALUES (?, ?, ?, ?, ?, ?)', [pid, uid, fid, result.web_id, reason, 2], (err) => {
+                      connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type, sig) VALUES (?, ?, ?, ?, ?, ?)', [pid, uid, fid, result.web_id, reason, 2, sig], (err) => {
                         if (err) {
                           console.log(err);
                         } else if (clients[fid]) {
