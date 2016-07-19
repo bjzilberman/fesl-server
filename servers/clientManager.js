@@ -410,6 +410,7 @@ client.on('command.delbuddy', (payload) => {
 
 client.on('command.authadd', (payload) => {
     console.log("authadd Command");
+    console.log(payload);
     GsUtil.dbConnection(db, (err, connection) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         var uid = client.state.battlelogId;
@@ -417,11 +418,12 @@ client.on('command.authadd', (payload) => {
         connection.query('UPDATE revive_friends SET (confirmed = 1) WHERE uid=? AND fid=?', [uid, fid], (err, result) => {
             if (clients[fid]) {
               var date = new Date/1000;
-              var msg = reason + '|signed|' + md5("1021385" + "1286119");
+              var msg = '';
               var msgObj = util.format('\\bm\\4\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                fid, date, msg
+                client.state.plyPid, date, msg
               );
               clients[fid].write(msgObj);
+              console.log(msgObj);
             }
             connection.release();
         });
