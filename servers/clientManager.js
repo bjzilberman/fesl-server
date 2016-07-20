@@ -492,7 +492,7 @@ client.on('command.updatepro', (payload) => {
 });
 
 client.on('command.logout', (payload) => {
-    client.close();
+  client.close();
 })
 
 client.on('command.newuser', (payload) => {
@@ -501,18 +501,34 @@ client.on('command.newuser', (payload) => {
 
 client.on('close', () => {
     if (!client.state) return;
-    var blId = client.state.plyPid;
+    var pid = client.state.plyPid;
     if (client.state.hasLogin) {
         Log('Logout', client.state.plyName, client.socket.remoteAddress, client.state.plyPid);
         GsUtil.dbConnection(db, (err, connection) => {
-            if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
-            process.send({type: 'clientLogout', id: blId});
-            connection.query('UPDATE revive_soldiers SET online = 0, status = ?, status_msg = null WHERE pid=? AND game=?', ["Offline", blId, "stella"]);
-            connection.release();
+          if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
+          var msg = '|s|0|ss|Offline';
+          connection.query('SELECT uid from revive_friends WHERE fid = ?', [pid], (err, result) => {
+            async.each(result, function(result, callback) {
+              if (clients[result.uid]) {
+                  var friendObj = util.format('\\bm\\100');
+                  friendObj += util.format('\\f\\%d\\msg\\%s', pid, msg);
+                  friendObj += util.format('\\final\\');
+                  clients[result.uid].write(friendObj);
+                  //console.log(sendObj);
+                }
+                callback();
+              }, function(err) {
+                process.send({type: 'clientLogout', id: pid});
+                connection.query('UPDATE revive_soldiers SET online = 0, status = ?, status_msg = null WHERE pid=? AND game=?', ["Offline", pid, "stella"]);
+                connection.release();
+              });
+            });
         });
     } else {
         //Log('Disconnect', client.socket.remoteAddress);
     }
+    clients[client.state.battllogId] = null;
+    clients[client.state.pldPid] = null;
     client = null;
     delete client;
     server.clients.length
