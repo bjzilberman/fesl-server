@@ -190,24 +190,22 @@ server.on('newClient', (client) => {
                   } else {
                     var msgObj = [];
                     async.each(result, function(result, callback) {
-                      if (result.msg_type == 1) {
-                        console.log("bm 1");
-                        connection.query('UPDATE revive_messages SET `read` = 1 WHERE id=?', [result.id], (err, msg) => {
-
+                      connection.query('UPDATE revive_messages SET `read` = 1 WHERE id=?', [result.id], (err, msg) => {
+                        if (result.msg_type == 1) {
+                          console.log("bm 1");
+                            msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+                              result.msg_type, result.from_pid, result.sentDate, result.msg
+                            );
+                            callback();
+                            console.log(msgObj);
+                        } else if (result.msg_type == 2) {
+                          var msg = result.msg + '|signed|' + md5(result.from_pid.toString() + client.state.plyPid.toString());
                           msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                            result.msg_type, result.from_pid, result.sentDate, result.msg
+                            result.msg_type, result.from_pid, result.sentDate, msg
                           );
                           callback();
-                          console.log(msgObj);
-                        });
-                      } else if (result.msg_type == 2) {
-                        var msg = 'testing|signed|' + md5("1021385" + "1286119");
-                        msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                          result.msg_type, result.from_pid, result.sentDate, msg
-                        );
-                        callback();
-                      }
-
+                        }
+                      });
                     }, function(err) {
                       if (err || msgObj.length == 0) {
                         console.log("no message");
@@ -343,7 +341,7 @@ client.on('command.addbuddy', (payload) => {
         var uid = client.state.battlelogId;
         var pid = client.state.plyPid
         var fid = payload['newprofileid'];
-        var sig = md5(pid + fid);
+        var sig = md5(pid.toString() + fid.toString());
         var reason = payload['reason'];
         if (client.state.plyPid == fid) { /* handle cannot add friend who is alrdy friend */ }
         connection.query('SELECT web_id, online, status, status_msg, pid from revive_soldiers where pid = ? AND game = ? LIMIT 1', [fid, "stella"], (err, result) => {
@@ -356,7 +354,7 @@ client.on('command.addbuddy', (payload) => {
 
             result = result[0];
             if (payload.reason == "Auto-request") {
-              connection.query('INSERT INTO revive_friends (uid, fid, fid_uid, confirmed) VALUES (?, ?, ?, ?)', [uid, fid, result.web_id, 1], (err) => {
+              connection.query('INSERT INTO revive_friends (uid, fid, fid_uid, confirmed) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE confirmed = 1', [uid, fid, result.web_id, 1], (err) => {
                   if (err) {
                     console.log(err);
                     console.log("failure inserting auto request");
@@ -367,7 +365,7 @@ client.on('command.addbuddy', (payload) => {
                     if (result.status == 'Offline') {
                         msg = '|s|' + result.online + '|ss|' + result.status;
                         friendObj += util.format('\\bm\\100');
-                        friendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                        friendObj += util.format('\\f\\%d\\msg\\%s', result.pid, msg);
                         friendObj += util.format('\\final\\');
                     } else {
                         msg = '|s|' + result.online + '|ss|' + result.status + '|ls|' + result.status_msg + '|ip|0|p|0' ;
@@ -419,11 +417,28 @@ client.on('command.delbuddy', (payload) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         var uid = client.state.battlelogId;
         var fid = payload['delprofileid'];
-        connection.query('DELETE FROM revive_friends WHERE uid=? AND fid=?', [uid, fid], (err, result) => {
-
-            // do we write something back?
-            // mDaWg says no; client assumes deleted.
-            connection.release();
+        connection.query('DELETE FROM revive_friends WHERE uid=? AND fid=?', [uid, fid], (err) => {
+          connection.query('SELECT * FROM revive_soldiers WHERE pid=? AND game=?', [fid, "stella"], (err, result) => {
+            if (!result || result.length == 0) {
+              console.log("Friend wasn't on list");
+            } else {
+              result = result[0];
+              connection.query('DELETE FROM revive_friends WHERE uid=? AND fid=?', [result.web_id, client.state.plyPid], (err) => {
+                console.log("Friend Deleted");
+                console.log(result);
+                if (clients[fid]) {
+                  var date = Math.floor(Date.now() / 1000);
+                  var friendObj = util.format('\\bm\\6');
+                  var msg = '|s|0|ss|Offline';
+                  friendObj += util.format('\\f\\%d\\date\\%d', client.state.plyPid, date);
+                  friendObj += util.format('\\final\\');
+                  clients[fid].write(friendObj);
+                  console.log(friendObj);
+                }
+              });
+            }
+          });
+          connection.release();
         });
     });
 });
