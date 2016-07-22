@@ -282,6 +282,9 @@ Log('Raw Command: ', name, JSON.stringify(payload, true));
 })*/
 
 client.on('command.status', (payload) => {
+    if (!client) {
+        return console.log("Client disappeared during login");
+    }
     GsUtil.dbConnection(db, (err, connection) => {
       if (payload.statstring != 'Offline') {
         client.state.statusinfo = '|s|1|ss|' + payload.statstring + '|ls|' + payload.locstring + '|ip|0|p|0';
