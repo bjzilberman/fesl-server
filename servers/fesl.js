@@ -78,7 +78,18 @@ server.on('newClient', function (client) {
 
     client.on('acct.Login', function(payload, type2) {
         client.state.username = payload.name;
-
+        if (payload.encryptedInfo) {
+          const decipher = crypto.createDecipher('aes192', 'b@ttlel0g_bf2142');
+          var decrypted = decipher.update(payload.encryptedInfo, 'hex', 'utf8');
+          decrypted += decipher.final('utf8');
+          var result = {};
+          decrypted.split('|').forEach(function(x){
+              var arr = x.split('=');
+              arr[1] && (result[arr[0]] = arr[1]);
+          });
+          payload.name = result.username;
+          payload.password = result.password;
+        }
 
         GsUtil.dbConnection(db, (err, connection) => {
             if (err || !connection) { console.log(err); return connection.release() }
@@ -95,7 +106,7 @@ server.on('newClient', function (client) {
                 } else {
                     result = result[0];
                     var password_16 = result.password.substr(0, result.password.length - 16);
-                    if (md5(payload.password) !== result.password && payload.password !== password_16) {
+                    if (md5(payload.password) !== result.password && payload.password !== password_16 && payload.password !== result.password) {
                       connection.release();
                       return client.write('acct', {
                           TXN: 'Login',
@@ -113,11 +124,18 @@ server.on('newClient', function (client) {
                       }, type2);
                     } else {
                         connection.release();
+                        const cipher = crypto.createCipher('aes192', 'b@ttlel0g_bf2142');
+                        var encryptedLoginInfo = cipher.update('password=' + result.password + '|username=' + result.username, 'utf8', 'hex');
+                        encryptedLoginInfo += cipher.final('hex');
                         client.state.pid = result.id;
                         var sendObj = {
                             TXN: payload.name
                         }
-                        sendObj[payload.name + '.[]'] = 0
+                        sendObj[payload.name + '.[]'] = 0;
+                        if (payload.returnEncryptedInfo = 1) {
+                            sendObj['encryptedLoginInfo'] = encryptedLoginInfo;
+                        }
+                        console.log(sendObj);
                         client.write('acct', sendObj, type2)
                     }
                 }
