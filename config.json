@@ -1,8 +1,13 @@
 {
   "db": {
-    "host": "webdb.bf2.local",
+    "host": "52.204.142.63",
     "user": "spencer",
     "password": "fuck_you_spencer_asshole",
     "database": "revive_prod"
+  },
+  "aws": {
+    "accessKeyId": "AKIAJAJMF7FCI5265URQ",
+    "secretAccessKey": "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", 
+    "region": "us-east-1"
   }
 }

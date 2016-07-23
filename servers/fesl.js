@@ -229,6 +229,7 @@ server.on('newClient', function (client) {
         var sendObj = {
             TXN: 'SendAccountName'
         }
+        var emailInfo = [];
         client.write('acct', sendObj, type2);
         if (err || !connection) { console.log(err); return connection.release() }
         connection.query('SELECT username FROM web_users where email = ?', [payload.email], (err, result) => {
@@ -236,7 +237,17 @@ server.on('newClient', function (client) {
                 // write output error here
                 connection.release();
             } else {
-              connection.release();
+              if (!result || result.length == 0) {
+                emailInfo['email'] = payload.email;
+                emailUtil.noAccount(emailInfo);
+                  // Then ignore this
+              } else {
+                var result = result[0];
+                emailInfo['email'] = payload.email;
+                emailInfo['name'] = result.username;
+                emailUtil.sendAccountName(emailInfo);
+                connection.release();
+              }
             }
         });
       });
@@ -258,20 +269,24 @@ server.on('newClient', function (client) {
             console.log(err);
             connection.release();
           } else {
-            var result = result[0];
-            connection.query('UPDATE web_users SET fpass_token = ? where username = ?', [token, payload.name], (err) => {
-                if (err) {
-                    console.log(err);
+            if (!result || result.length == 0) {
+              console.log("Non-existing Account Requested");
+            } else {
+              var result = result[0];
+              connection.query('UPDATE web_users SET fpass_token = ? where username = ?', [token, payload.name], (err) => {
+                  if (err) {
+                      console.log(err);
+                      connection.release();
+                  } else {
+                    emailInfo['email'] = result.email;
+                    emailInfo['name'] = payload.name;
+                    emailInfo['id'] = result.id;
+                    emailInfo['token'] = token;
+                    emailUtil.sendPassword(emailInfo);
                     connection.release();
-                } else {
-                  emailInfo['email'] = result.email;
-                  emailInfo['name'] = payload.name;
-                  emailInfo['id'] = result.id;
-                  emailInfo['token'] = token;
-                  emailUtil.sendPassword(emailInfo);
-                  connection.release();
-                }
-            });
+                  }
+              });
+            }
           }
         });
       });
