@@ -5,4 +5,3 @@ chalk.reset();
 
 var fesl = exec('./servers/fesl.js');
 var clientManager = exec('./servers/clientManager.js');
-var searchProvider = exec('./servers/searchProvider.js');
