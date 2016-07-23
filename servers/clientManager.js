@@ -128,13 +128,13 @@ server.on('newClient', (client) => {
 
                 Log('Login Success', client.socket.remoteAddress, client.state.plyName);
                 var sendObj = util.format('\\lc\\2\\sesskey\\%d\\proof\\%s\\userid\\%d\\profileid\\%d\\uniquenick\\%s\\lt\\%s__\\id\\1\\final\\',
-                    session,
-                    md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
-                    client.state.plyPid, client.state.plyPid,
-                    client.state.plyName,
-                    GsUtil.bf2Random(22)
-                );
-                client.write(sendObj);
+                session,
+                md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.serverChallenge + client.state.clientChallenge + result.password),
+                client.state.plyPid, client.state.plyPid,
+                client.state.plyName,
+                GsUtil.bf2Random(22)
+            );
+            client.write(sendObj);
 
 
 
@@ -146,83 +146,83 @@ server.on('newClient', (client) => {
                     var msg;
                     var friendObj = [];
                     async.each(result, function(result, callback) {
-                      if (result['confirmed'] == 1) {
-                        console.log("found a friend");
-                        connection.query('SELECT pid, online, status, status_msg FROM revive_soldiers WHERE pid = ? AND game = ? LIMIT 1', [result['fid'], "stella"], (err, result) => {
-                          if (!result || result.length == 0) {
-                              console.log('no result');
-                          } else {
-                              if (result[0]['status'] == 'Offline') {
-                                console.log(result[0]);
-                                  msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'];
-                                  friendObj += util.format('\\bm\\100');
-                                  friendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
-                                  friendObj += util.format('\\final\\');
-                                  //console.log(sendObj);
-                              } else {
-                                  msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0' ;
-                                  friendObj += util.format('\\bm\\100');
-                                  friendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
-                                  friendObj += util.format('\\final\\');
-                              }
-                          }
-                          callback();
-                        });
-                      } else {
-                        callback();
-                      }
+                        if (result['confirmed'] == 1) {
+                            console.log("found a friend");
+                            connection.query('SELECT pid, online, status, status_msg FROM revive_soldiers WHERE pid = ? AND game = ? LIMIT 1', [result['fid'], "stella"], (err, result) => {
+                                if (!result || result.length == 0) {
+                                    console.log('no result');
+                                } else {
+                                    if (result[0]['status'] == 'Offline') {
+                                        console.log(result[0]);
+                                        msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'];
+                                        friendObj += util.format('\\bm\\100');
+                                        friendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                                        friendObj += util.format('\\final\\');
+                                        //console.log(sendObj);
+                                    } else {
+                                        msg = '|s|' + result[0]['online'] + '|ss|' + result[0]['status'] + '|ls|' + result[0]['status_msg'] + '|ip|0|p|0' ;
+                                        friendObj += util.format('\\bm\\100');
+                                        friendObj += util.format('\\f\\%d\\msg\\%s', result[0]['pid'], msg);
+                                        friendObj += util.format('\\final\\');
+                                    }
+                                }
+                                callback();
+                            });
+                        } else {
+                            callback();
+                        }
                     }, function(err) {
-                      if (err || friendObj.length == 0) {
-                        console.log(err);
-                        console.log("no friends")
-                      } else {
-                        console.log("test");
-                        console.log(friendObj);
-                        client.write(friendObj);
-                      }
+                        if (err || friendObj.length == 0) {
+                            console.log(err);
+                            console.log("no friends")
+                        } else {
+                            console.log("test");
+                            console.log(friendObj);
+                            client.write(friendObj);
+                        }
                     });
-                  }
-                });
+                }
+            });
 
-                connection.query('SELECT * FROM revive_messages WHERE to_uid = ? AND `read` = 0', [client.state.battlelogId], (err, result) => {
-                  if (!result || result.length == 0) {
+            connection.query('SELECT * FROM revive_messages WHERE to_uid = ? AND `read` = 0', [client.state.battlelogId], (err, result) => {
+                if (!result || result.length == 0) {
                     console.log("No Messages");
-                  } else {
+                } else {
                     var msgObj = [];
                     async.each(result, function(result, callback) {
-                      connection.query('UPDATE revive_messages SET `read` = 1 WHERE id=?', [result.id], (err, msg) => {
-                        if (result.msg_type == 1) {
-                          console.log("bm 1");
-                            msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                              result.msg_type, result.from_pid, result.sentDate, result.msg
+                        connection.query('UPDATE revive_messages SET `read` = 1 WHERE id=?', [result.id], (err, msg) => {
+                            if (result.msg_type == 1) {
+                                console.log("bm 1");
+                                msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+                                result.msg_type, result.from_pid, result.sentDate, result.msg
                             );
                             callback();
                             console.log(msgObj);
                         } else if (result.msg_type == 2) {
-                          var msg = result.msg + '|signed|' + md5(result.from_pid.toString() + client.state.plyPid.toString());
-                          msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+                            var msg = result.msg + '|signed|' + md5(result.from_pid.toString() + client.state.plyPid.toString());
+                            msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
                             result.msg_type, result.from_pid, result.sentDate, msg
-                          );
-                          callback();
-                        }
-                      });
-                    }, function(err) {
-                      if (err || msgObj.length == 0) {
-                        console.log("no message");
-                      } else {
-                        client.write(msgObj);
-                      }
-                    });
-                  }
+                        );
+                        callback();
+                    }
                 });
-              connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? and game =?', [result.pid, "stella"]);
-              process.send({type: 'clientLogin', id: result.pid});
-              client.state.hasLogin = true;
-              connection.release();
-          });
-      });
-    return;
-  } else {
+            }, function(err) {
+                if (err || msgObj.length == 0) {
+                    console.log("no message");
+                } else {
+                    client.write(msgObj);
+                }
+            });
+        }
+    });
+    connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? and game =?', [result.pid, "stella"]);
+    process.send({type: 'clientLogin', id: result.pid});
+    client.state.hasLogin = true;
+    connection.release();
+});
+});
+return;
+} else {
     client.state.clientChallenge = payload['challenge'] || undefined;
     client.state.clientResponse = payload['response'] || undefined;
     if (!payload['uniquenick'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
@@ -267,14 +267,14 @@ server.on('newClient', (client) => {
             client.state.plyPid, client.state.plyPid,
             client.state.plyName,
             GsUtil.bf2Random(22)
-          ));
-          connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? AND game=?', [result.id, "stella"]);
-          process.send({type: 'clientLogin', id: result.id});
-          client.state.hasLogin = true;
-          connection.release();
-      });
-    })
-  }
+        ));
+        connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? AND game=?', [result.id, "stella"]);
+        process.send({type: 'clientLogin', id: result.id});
+        client.state.hasLogin = true;
+        connection.release();
+    });
+})
+}
 })
 
 /*client.on('command', (name, payload) => {
@@ -287,29 +287,29 @@ client.on('command.status', (payload) => {
     }
     GsUtil.dbConnection(db, (err, connection) => {
         if (!client || !client.state) return connection.release();
-      if (payload.statstring != 'Offline') {
-        client.state.statusinfo = '|s|1|ss|' + payload.statstring + '|ls|' + payload.locstring + '|ip|0|p|0';
-      } else {
-        client.state.statusinfo = '|s|0|ss|' + payload.statstring;
-      }
-      if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
-      connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
-        connection.query('SELECT uid from revive_friends WHERE fid = ?', [client.state.plyPid], (err, result) => {
-          async.each(result, function(result, callback) {
-            if (clients[result.uid]) {
-                msg = client.state.statusinfo;
-                var friendObj = util.format('\\bm\\100');
-                friendObj += util.format('\\f\\%d\\msg\\%s', client.state.plyPid, msg);
-                friendObj += util.format('\\final\\');
-                clients[result.uid].write(friendObj);
-                //console.log(sendObj);
-              }
+        if (payload.statstring != 'Offline') {
+            client.state.statusinfo = '|s|1|ss|' + payload.statstring + '|ls|' + payload.locstring + '|ip|0|p|0';
+        } else {
+            client.state.statusinfo = '|s|0|ss|' + payload.statstring;
+        }
+        if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+        connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
+            connection.query('SELECT uid from revive_friends WHERE fid = ?', [client.state.plyPid], (err, result) => {
+                async.each(result, function(result, callback) {
+                    if (clients[result.uid]) {
+                        msg = client.state.statusinfo;
+                        var friendObj = util.format('\\bm\\100');
+                        friendObj += util.format('\\f\\%d\\msg\\%s', client.state.plyPid, msg);
+                        friendObj += util.format('\\final\\');
+                        clients[result.uid].write(friendObj);
+                        //console.log(sendObj);
+                    }
+                });
             });
-          });
         });
         connection.release();
-      });
     });
+});
 
 
 client.on('command.bm', (payload) => {
@@ -318,23 +318,23 @@ client.on('command.bm', (payload) => {
     GsUtil.dbConnection(db, (err, connection) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         connection.query('SELECT web_id from revive_soldiers where pid = ? AND game = ? LIMIT 1', [payload.t, "stella"], (err, result) => {
-          if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'Friend does not exist.') }
-          result = result[0];
-          console.log(result);
-          connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type) VALUES (?, ?, ?, ?, ?, ?)', [client.state.plyPid, client.state.battlelogId, payload.t, result.web_id, payload.msg, payload.bm], (err, msg) => {
-            if (err) {
-              console.log(err);
-            } else if (clients[payload.t]) {
-              var msgObj = util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                payload.bm, client.state.plyPid, result.sentDate, payload.msg
-              );
-              clients[payload.t].write(msgObj);
-              console.log("message sent successfully");
+            if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'Friend does not exist.') }
+            result = result[0];
+            console.log(result);
+            connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type) VALUES (?, ?, ?, ?, ?, ?)', [client.state.plyPid, client.state.battlelogId, payload.t, result.web_id, payload.msg, payload.bm], (err, msg) => {
+                if (err) {
+                    console.log(err);
+                } else if (clients[payload.t]) {
+                    var msgObj = util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+                    payload.bm, client.state.plyPid, result.sentDate, payload.msg
+                );
+                clients[payload.t].write(msgObj);
+                console.log("message sent successfully");
             }
-          });
         });
-        connection.release();
     });
+    connection.release();
+});
 });
 
 client.on('command.addbuddy', (payload) => {
@@ -349,69 +349,69 @@ client.on('command.addbuddy', (payload) => {
         var reason = payload['reason'];
         if (client.state.plyPid == fid) { /* handle cannot add friend who is alrdy friend */ }
         connection.query('SELECT web_id, online, status, status_msg, pid from revive_soldiers where pid = ? AND game = ? LIMIT 1', [fid, "stella"], (err, result) => {
-          if (err) {
-            connection.release();
-            console.log(err);
-            console.log("failure selecting");
-            // Hope we don't make it here
-          } else {
-
-            result = result[0];
-            if (payload.reason == "Auto-request") {
-              connection.query('INSERT INTO revive_friends (uid, fid, fid_uid, confirmed) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE confirmed = 1', [uid, fid, result.web_id, 1], (err) => {
-                  if (err) {
-                    console.log(err);
-                    console.log("failure inserting auto request");
-                      /* probably look for key already exists */
-                  } else {
-                    console.log(result);
-                    var friendObj = [];
-                    if (result.status == 'Offline') {
-                        msg = '|s|' + result.online + '|ss|' + result.status;
-                        friendObj += util.format('\\bm\\100');
-                        friendObj += util.format('\\f\\%d\\msg\\%s', result.pid, msg);
-                        friendObj += util.format('\\final\\');
-                    } else {
-                        msg = '|s|' + result.online + '|ss|' + result.status + '|ls|' + result.status_msg + '|ip|0|p|0' ;
-                        friendObj += util.format('\\bm\\100');
-                        friendObj += util.format('\\f\\%d\\msg\\%s', result.pid, msg);
-                        friendObj += util.format('\\final\\');
-                    }
-                    console.log(friendObj);
-                    client.write(friendObj);
-                    console.log("successfully added");
-                  }
-              });
+            if (err) {
+                connection.release();
+                console.log(err);
+                console.log("failure selecting");
+                // Hope we don't make it here
             } else {
-              connection.query('INSERT INTO revive_friends (uid, fid, fid_uid, sig) VALUES (?, ?, ?, ?)', [uid, fid, result.web_id, sig], (err) => {
-                  if (err) {
-                    //console.log(err);
-                    console.log("failure inserting");
-                      /* probably look for key already exists */
-                  } else {
-                      console.log("success");
-                      console.log(sig);
-                      connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type) VALUES (?, ?, ?, ?, ?, ?)', [pid, uid, fid, result.web_id, reason, 2], (err) => {
+
+                result = result[0];
+                if (payload.reason == "Auto-request") {
+                    connection.query('INSERT INTO revive_friends (uid, fid, fid_uid, confirmed) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE confirmed = 1', [uid, fid, result.web_id, 1], (err) => {
                         if (err) {
-                          console.log(err);
-                        } else if (clients[fid]) {
-                          var date = Math.floor(Date.now() / 1000);
-                          var msg = reason + '|signed|' + sig;
-                          var msgObj = util.format('\\bm\\2\\f\\%d\\date\\%d\\msg\\%s\\final\\',
-                            pid, date, msg
-                          );
-                          clients[fid].write(msgObj);
-                          console.log(msgObj);
-                          console.log("live addBuddy sent");
+                            console.log(err);
+                            console.log("failure inserting auto request");
+                            /* probably look for key already exists */
+                        } else {
+                            console.log(result);
+                            var friendObj = [];
+                            if (result.status == 'Offline') {
+                                msg = '|s|' + result.online + '|ss|' + result.status;
+                                friendObj += util.format('\\bm\\100');
+                                friendObj += util.format('\\f\\%d\\msg\\%s', result.pid, msg);
+                                friendObj += util.format('\\final\\');
+                            } else {
+                                msg = '|s|' + result.online + '|ss|' + result.status + '|ls|' + result.status_msg + '|ip|0|p|0' ;
+                                friendObj += util.format('\\bm\\100');
+                                friendObj += util.format('\\f\\%d\\msg\\%s', result.pid, msg);
+                                friendObj += util.format('\\final\\');
+                            }
+                            console.log(friendObj);
+                            client.write(friendObj);
+                            console.log("successfully added");
                         }
-                      });
-                  }
-              });
+                    });
+                } else {
+                    connection.query('INSERT INTO revive_friends (uid, fid, fid_uid, sig) VALUES (?, ?, ?, ?)', [uid, fid, result.web_id, sig], (err) => {
+                        if (err) {
+                            //console.log(err);
+                            console.log("failure inserting");
+                            /* probably look for key already exists */
+                        } else {
+                            console.log("success");
+                            console.log(sig);
+                            connection.query('INSERT INTO revive_messages (from_pid, from_uid, to_pid, to_uid, msg, msg_type) VALUES (?, ?, ?, ?, ?, ?)', [pid, uid, fid, result.web_id, reason, 2], (err) => {
+                                if (err) {
+                                    console.log(err);
+                                } else if (clients[fid]) {
+                                    var date = Math.floor(Date.now() / 1000);
+                                    var msg = reason + '|signed|' + sig;
+                                    var msgObj = util.format('\\bm\\2\\f\\%d\\date\\%d\\msg\\%s\\final\\',
+                                    pid, date, msg
+                                );
+                                clients[fid].write(msgObj);
+                                console.log(msgObj);
+                                console.log("live addBuddy sent");
+                            }
+                        });
+                    }
+                });
             }
             connection.release();
-          }
-        });
+        }
     });
+});
 });
 
 client.on('command.delbuddy', (payload) => {
@@ -422,27 +422,27 @@ client.on('command.delbuddy', (payload) => {
         var uid = client.state.battlelogId;
         var fid = payload['delprofileid'];
         connection.query('DELETE FROM revive_friends WHERE uid=? AND fid=?', [uid, fid], (err) => {
-          connection.query('SELECT * FROM revive_soldiers WHERE pid=? AND game=?', [fid, "stella"], (err, result) => {
-            if (!result || result.length == 0) {
-              console.log("Friend wasn't on list");
-            } else {
-              result = result[0];
-              connection.query('DELETE FROM revive_friends WHERE uid=? AND fid=?', [result.web_id, client.state.plyPid], (err) => {
-                console.log("Friend Deleted");
-                console.log(result);
-                if (clients[fid]) {
-                  var date = Math.floor(Date.now() / 1000);
-                  var friendObj = util.format('\\bm\\6');
-                  var msg = '|s|0|ss|Offline';
-                  friendObj += util.format('\\f\\%d\\date\\%d', client.state.plyPid, date);
-                  friendObj += util.format('\\final\\');
-                  clients[fid].write(friendObj);
-                  console.log(friendObj);
+            connection.query('SELECT * FROM revive_soldiers WHERE pid=? AND game=?', [fid, "stella"], (err, result) => {
+                if (!result || result.length == 0) {
+                    console.log("Friend wasn't on list");
+                } else {
+                    result = result[0];
+                    connection.query('DELETE FROM revive_friends WHERE uid=? AND fid=?', [result.web_id, client.state.plyPid], (err) => {
+                        console.log("Friend Deleted");
+                        console.log(result);
+                        if (clients[fid]) {
+                            var date = Math.floor(Date.now() / 1000);
+                            var friendObj = util.format('\\bm\\6');
+                            var msg = '|s|0|ss|Offline';
+                            friendObj += util.format('\\f\\%d\\date\\%d', client.state.plyPid, date);
+                            friendObj += util.format('\\final\\');
+                            clients[fid].write(friendObj);
+                            console.log(friendObj);
+                        }
+                    });
                 }
-              });
-            }
-          });
-          connection.release();
+            });
+            connection.release();
         });
     });
 });
@@ -458,16 +458,16 @@ client.on('command.authadd', (payload) => {
         var sig = payload['sig'];
         connection.query('UPDATE revive_friends SET confirmed = 1 WHERE sig=?', [sig], (err, result) => {
             if (clients[fid]) {
-              var msg = client.state.statusinfo;
-              var friendObj = util.format('\\bm\\100');
-              friendObj += util.format('\\f\\%d\\msg\\%s', client.state.plyPid, msg);
-              friendObj += util.format('\\final\\');
-              clients[fid].write(friendObj);
+                var msg = client.state.statusinfo;
+                var friendObj = util.format('\\bm\\100');
+                friendObj += util.format('\\f\\%d\\msg\\%s', client.state.plyPid, msg);
+                friendObj += util.format('\\final\\');
+                clients[fid].write(friendObj);
             }
             connection.release();
         });
     });
-  });
+});
 
 client.on('command.getprofile', (payload) => {
     GsUtil.dbConnection(db, (err, connection) => {
@@ -511,7 +511,7 @@ client.on('command.updatepro', (payload) => {
 });
 
 client.on('command.logout', (payload) => {
-  client.close();
+    client.close();
 })
 
 client.on('command.newuser', (payload) => {
@@ -524,23 +524,23 @@ client.on('close', () => {
     if (client.state.hasLogin) {
         Log('Logout', client.state.plyName, client.socket.remoteAddress, client.state.plyPid);
         GsUtil.dbConnection(db, (err, connection) => {
-          if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
-          var msg = '|s|0|ss|Offline';
-          connection.query('SELECT uid from revive_friends WHERE fid = ?', [pid], (err, result) => {
-            async.each(result, function(result, callback) {
-              if (clients[result.uid]) {
-                  var friendObj = util.format('\\bm\\100');
-                  friendObj += util.format('\\f\\%d\\msg\\%s', pid, msg);
-                  friendObj += util.format('\\final\\');
-                  clients[result.uid].write(friendObj);
-                  //console.log(sendObj);
-                }
-                callback();
-              }, function(err) {
-                process.send({type: 'clientLogout', id: pid});
-                connection.query('UPDATE revive_soldiers SET online = 0, status = ?, status_msg = null WHERE pid=? AND game=?', ["Offline", pid, "stella"]);
-                connection.release();
-              });
+            if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
+            var msg = '|s|0|ss|Offline';
+            connection.query('SELECT uid from revive_friends WHERE fid = ?', [pid], (err, result) => {
+                async.each(result, function(result, callback) {
+                    if (clients[result.uid]) {
+                        var friendObj = util.format('\\bm\\100');
+                        friendObj += util.format('\\f\\%d\\msg\\%s', pid, msg);
+                        friendObj += util.format('\\final\\');
+                        clients[result.uid].write(friendObj);
+                        //console.log(sendObj);
+                    }
+                    callback();
+                }, function(err) {
+                    process.send({type: 'clientLogout', id: pid});
+                    connection.query('UPDATE revive_soldiers SET online = 0, status = ?, status_msg = null WHERE pid=? AND game=?', ["Offline", pid, "stella"]);
+                    connection.release();
+                });
             });
         });
     } else {
