@@ -9,6 +9,7 @@ var cluster = require('cluster'),
     dateFormat = require('dateformat');
 
 const GsUtil = require('../lib/GsUtil');
+const emailUtil = require('../lib/emailUtil');
 const FeslServer = require('../lib/FeslServer');
 
 function Log() {
@@ -205,34 +206,114 @@ server.on('newClient', function (client) {
       GsUtil.dbConnection(db, (err, connection) => {
         var hashedName = md5(payload.name + new Date());
         var time_deleted = Date.now();
-          if (err || !connection) { console.log(err); return connection.release() }
-          connection.query('UPDATE revive_soldiers SET nickname = ?, deleted = 1, deleted_name = ? where nickname = ? AND game = ?', [hashedName, payload.name, payload.name, 'stella'], (err, result) => {
-              if (err) {
-                  // write output error here
-                  connection.release();
-              } else {
-                var sendObj = {
-                    TXN: 'DisableSubAccount'
-                }
-                  client.write('acct', sendObj, type2);
-                  connection.release();
+        if (err || !connection) { console.log(err); return connection.release() }
+        connection.query('UPDATE revive_soldiers SET nickname = ?, deleted = 1, deleted_name = ? where nickname = ? AND game = ?', [hashedName, payload.name, payload.name, 'stella'], (err, result) => {
+            if (err) {
+                // write output error here
+                connection.release();
+            } else {
+              var sendObj = {
+                  TXN: 'DisableSubAccount'
               }
-          });
+                client.write('acct', sendObj, type2);
+                connection.release();
+            }
+        });
       });
     });
+
+    client.on('acct.SendAccountName', function(payload, type2) {
+      GsUtil.dbConnection(db, (err, connection) => {
+        var hashedName = md5(payload.name + new Date());
+        var time_deleted = Date.now();
+        var sendObj = {
+            TXN: 'SendAccountName'
+        }
+        client.write('acct', sendObj, type2);
+        if (err || !connection) { console.log(err); return connection.release() }
+        connection.query('SELECT username FROM web_users where email = ?', [payload.email], (err, result) => {
+            if (err) {
+                // write output error here
+                connection.release();
+            } else {
+              connection.release();
+            }
+        });
+      });
+    });
+
+    client.on('acct.SendPassword', function(payload, type2) {
+      GsUtil.dbConnection(db, (err, connection) => {
+        var hashedName = md5(payload.name + new Date());
+        var time_deleted = Date.now();
+        var sendObj = {
+            TXN: 'SendPassword'
+        };
+        var token = GsUtil.bf2Random(50);
+        var emailInfo = [];
+        client.write('acct', sendObj, type2);
+        if (err || !connection) { console.log(err); return connection.release() }
+        connection.query('SELECT id, email FROM web_users where username = ?', [payload.name], (err, result) => {
+          if (err) {
+            console.log(err);
+            connection.release();
+          } else {
+            var result = result[0];
+            connection.query('UPDATE web_users SET fpass_token = ? where username = ?', [token, payload.name], (err) => {
+                if (err) {
+                    console.log(err);
+                    connection.release();
+                } else {
+                  emailInfo['email'] = result.email;
+                  emailInfo['name'] = payload.name;
+                  emailInfo['id'] = result.id;
+                  emailInfo['token'] = token;
+                  emailUtil.sendPassword(emailInfo);
+                  connection.release();
+                }
+            });
+          }
+        });
+      });
+    });
+
     client.on('acct.GetTos', function(payload, type2) {
+        var tos = 'dG9zPSLvu79OT1RJQ0U6JTBkJTBhQWNjb3VudCBDcmVhdGlvbnMgaW4gZ2FtZSBoYXZlIGJlZW4gZGlzYWJs'
+        tos += 'ZWQuICUwZCUwYSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBkJTBhICAg'
+        tos += 'ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAgICAgICAg'
+        tos += 'ICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg'
+        tos += 'ICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBk'
+        tos += 'JTBhUGxlYXNlIGdvIHRvIGh0dHBzOi8vYmF0dGxlbG9nLmNvIHRvIHNpZ24gdXAgZm9yIGEgbmV3IGFjY291bnQu'
+        tos += 'IFlvdSBjYW4gdGhlbiBsb2dpbiB0byB0aGUgZ2FtZSB3aXRoIHlvdXIgYWNjb3VudCBjcmVhdGVkIGR1cmluZyB0'
+        tos += 'aGUgcmVnaXN0cmF0aW9uIHByb2Nlc3MuICUwZCUwYSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg'
+        tos += 'ICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBk'
+        tos += 'JTBhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAg'
+        tos += 'ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICUwZCUwYVdlIHJlY29tbWVuZCB5b3UgdXNl'
+        tos += 'IHRoZSBCYXR0bGVsb2cuY28gTGF1bmNoZXIgZm9yIHRoZSBiZXN0IGV4cGVyaWVuY2UuIg=='
         client.write('acct', {
-            data: 'VE9TPSJQbGVhc2UgZ28gdG8gYmF0dGxlbG9nLmNvIHRvIHJlZ2lzdGVyIGZvciBhIG5ldyBhY2NvdW50LiI=',
-            decodeSize: 62,
-            size: 85
+            data: tos,
+            decodedSize: 775,
+            size: 1036
         }, type2)
     });
 
     client.on('acct.GetCountryList', function(payload, type2) {
+        var tos = 'dG9zPSLvu79OT1RJQ0U6JTBkJTBhQWNjb3VudCBDcmVhdGlvbnMgaW4gZ2FtZSBoYXZlIGJlZW4gZGlzYWJs'
+        tos += 'ZWQuICUwZCUwYSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBkJTBhICAg'
+        tos += 'ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAgICAgICAg'
+        tos += 'ICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg'
+        tos += 'ICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBk'
+        tos += 'JTBhUGxlYXNlIGdvIHRvIGh0dHBzOi8vYmF0dGxlbG9nLmNvIHRvIHNpZ24gdXAgZm9yIGEgbmV3IGFjY291bnQu'
+        tos += 'IFlvdSBjYW4gdGhlbiBsb2dpbiB0byB0aGUgZ2FtZSB3aXRoIHlvdXIgYWNjb3VudCBjcmVhdGVkIGR1cmluZyB0'
+        tos += 'aGUgcmVnaXN0cmF0aW9uIHByb2Nlc3MuICUwZCUwYSAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg'
+        tos += 'ICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBk'
+        tos += 'JTBhICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgJTBkJTBhICAgICAgICAgICAg'
+        tos += 'ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICUwZCUwYVdlIHJlY29tbWVuZCB5b3UgdXNl'
+        tos += 'IHRoZSBCYXR0bGVsb2cuY28gTGF1bmNoZXIgZm9yIHRoZSBiZXN0IGV4cGVyaWVuY2UuIg=='
         client.write('acct', {
-            data: 'VE9TPSJQbGVhc2UgZ28gdG8gYmF0dGxlbG9nLmNvIHRvIHJlZ2lzdGVyIGZvciBhIG5ldyBhY2NvdW50LiI=',
-            decodeSize: 62,
-            size: 85
+          data: tos,
+          decodedSize: 775,
+          size: 1036
         }, type2)
     });
 

@@ -12,7 +12,8 @@
     "chalk": "^1.1.1",
     "dateformat": "^1.0.12",
     "md5": "2.0.0",
-    "mysql": "^2.10.2"
+    "mysql": "^2.10.2",
+    "aws-sdk": "latest"
   },
   "devDependencies": {},
   "repository": {
