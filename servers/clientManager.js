@@ -294,7 +294,9 @@ client.on('command.status', (payload) => {
         }
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
+            if (!client || !client.state) return connection.release();
             connection.query('SELECT uid from revive_friends WHERE fid = ?', [client.state.plyPid], (err, result) => {
+                if (!client || !client.state) return connection.release();
                 async.each(result, function(result, callback) {
                     if (clients[result.uid]) {
                         msg = client.state.statusinfo;
