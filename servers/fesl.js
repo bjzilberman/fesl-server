@@ -41,8 +41,8 @@ var db = GsUtil.dbPool();
 // Gamespy Search Provider Server
 var server = new FeslServer(chalk.magenta('FE'), {
     port: 18300,
-    tlsKey: fs.readFileSync('ssl/good_key.pem'),
-    tlsCert: fs.readFileSync('ssl/good_public.crt')
+    tlsKey: fs.readFileSync('ssl/fesl_key.pem'),
+    tlsCert: fs.readFileSync('ssl/fesl_publickey.crt')
 });
 
 // When we get a new connection
