@@ -80,16 +80,25 @@ server.on('newClient', function (client) {
     client.on('acct.Login', function(payload, type2) {
         client.state.username = payload.name;
         if (payload.encryptedInfo) {
-          const decipher = crypto.createDecipher('aes192', 'b@ttlel0g_bf2142');
-          var decrypted = decipher.update(payload.encryptedInfo, 'hex', 'utf8');
-          decrypted += decipher.final('utf8');
-          var result = {};
-          decrypted.split('|').forEach(function(x){
-              var arr = x.split('=');
-              arr[1] && (result[arr[0]] = arr[1]);
-          });
-          payload.name = result.username;
-          payload.password = result.password;
+            try {
+                const decipher = crypto.createDecipher('aes192', 'b@ttlel0g_bf2142');
+                var decrypted = decipher.update(payload.encryptedInfo, 'hex', 'utf8');
+                decrypted += decipher.final('utf8');
+                var result = {};
+                decrypted.split('|').forEach(function(x){
+                    var arr = x.split('=');
+                    arr[1] && (result[arr[0]] = arr[1]);
+                });
+                payload.name = result.username;
+                payload.password = result.password;
+            }
+            catch (e) {
+                console.log("decryption failed. moving on");
+                console.log(e);
+            }
+            finally {
+                console.log("catch ended");
+            }
         }
 
         GsUtil.dbConnection(db, (err, connection) => {
