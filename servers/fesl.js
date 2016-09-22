@@ -93,7 +93,14 @@ server.on('newClient', function (client) {
         }
 
         GsUtil.dbConnection(db, (err, connection) => {
-            if (err || !connection) { console.log(err); return connection.release() }
+            if (err || !connection) {
+              console.log(err);
+              return client.write('acct', {
+                TXN: 'Login',
+                'localizedMessage':'Database connection lost.',
+                'errorContainer.[]': 0,
+                'errorCode':99
+            }, type2); }
             connection.query('SELECT id, pid, username, password, game_country, email, banned FROM web_users WHERE username = ? OR username_16 = ?', [payload['name'], payload['name']], (err, result) => {
                 if (!result || result.length == 0) {
                     connection.release();
@@ -162,7 +169,7 @@ server.on('newClient', function (client) {
     client.on('acct.GetSubAccounts', function(payload, type2) {
 
       GsUtil.dbConnection(db, (err, connection) => {
-          if (err || !connection) { console.log(err); return connection.release() }
+          if (err || !connection) { console.log(err); return }
           connection.query('SELECT pid, nickname FROM revive_soldiers WHERE web_id = ? AND game = ? AND deleted != 1', [client.state.pid, 'stella'], (err, result) => {
               var sendObj = {
                   TXN: 'GetSubAccounts',
@@ -185,11 +192,19 @@ server.on('newClient', function (client) {
 
     client.on('acct.AddSubAccount', function(payload, type2) {
       GsUtil.dbConnection(db, (err, connection) => {
-          if (err || !connection) { console.log(err); return connection.release() }
+          if (err || !connection) { console.log(err); return }
           connection.query('INSERT INTO revive_soldiers (web_id, nickname, game) values (?, ?, ?)', [client.state.pid, payload.name, 'stella'], (err, result) => {
               if (err) {
                   // write output error here
+                  console.log(err);
                   connection.release();
+                  var sendObj = {
+                    TXN: 'AddSubAccount',
+                    'localizedMessage':'LOCERROR_soldiernameexists',
+                    'errorContainer.[]': 0,
+                    'errorCode':161
+                  }
+                  client.write('acct', sendObj, type2);
               } else {
                 var sendObj = {
                     TXN: 'AddSubAccount'
