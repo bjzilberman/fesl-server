@@ -354,10 +354,12 @@ client.on('command.addbuddy', (payload) => {
             if (err) {
                 connection.release();
                 console.log(err);
-                console.log("failure selecting");
+                console.log("failure selecting... dats bad");
                 // Hope we don't make it here
             } else {
-
+                if (!result || result.length == 0) {
+                  console.log("Friend Not Found");
+                } else {
                 result = result[0];
                 if (payload.reason == "Auto-request") {
                     connection.query('INSERT INTO revive_friends (uid, fid, fid_uid, confirmed) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE confirmed = 1', [uid, fid, result.web_id, 1], (err) => {
@@ -412,6 +414,7 @@ client.on('command.addbuddy', (payload) => {
             }
             connection.release();
         }
+      }
     });
 });
 });
@@ -476,22 +479,37 @@ client.on('command.getprofile', (payload) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         connection.query('SELECT * FROM revive_soldiers WHERE pid = ? AND game= ?', [payload.profileid, "stella"], (err, result) => {
             if (!result || result.length == 0) {
+              console.log("was here");
+              var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\%d\\firstname\\\\lastname\\' +
+                  '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
+                  1000,
+                  'NOT A REVIVE USER',
+                  1000,
+                  'test@gmail.com',
+                  GsUtil.bf2Random(32),
+                  'NOT A REVIVE USER',
+                  1000,
+                  'US',
+                  payload.id//(client.state.profileSent ? 5 : 2)
+              );
+              client.write(sendObj);
+              console.log(sendObj);
             } else {
                 var result = result[0];
                 var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\%d\\firstname\\\\lastname\\' +
-                '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
-                result.pid,
-                result.nickname,
-                result.pid,
-                result.nickname + '@gmail.com',
-                GsUtil.bf2Random(32),
-                result.nickname,
-                result.pid,
-                client.state.plyCountry,
-                payload.id//(client.state.profileSent ? 5 : 2)
-            );
-            client.write(sendObj);
-            client.state.profileSent = true;
+                    '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
+                    result.pid,
+                    result.nickname,
+                    result.pid,
+                    result.nickname + '@gmail.com',
+                    GsUtil.bf2Random(32),
+                    result.nickname,
+                    result.pid,
+                    client.state.plyCountry,
+                    payload.id//(client.state.profileSent ? 5 : 2)
+                );
+                client.write(sendObj);
+                client.state.profileSent = true;
         }
         connection.release();
     });
