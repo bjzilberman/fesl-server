@@ -202,7 +202,7 @@ server.on('newClient', function (client) {
                     TXN: 'AddSubAccount',
                     'localizedMessage':'LOCERROR_soldiernameexists',
                     'errorContainer.[]': 0,
-                    'errorCode':161
+                    'errorCode':160
                   }
                   client.write('acct', sendObj, type2);
               } else {
