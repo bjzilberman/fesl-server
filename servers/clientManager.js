@@ -92,16 +92,31 @@ server.on('newClient', (client) => {
         if (payload && payload.gamename == 'stella') {
             client.state.clientChallenge = payload['challenge'] || undefined;
             client.state.clientResponse = payload['response'] || undefined;
+	    if (!client) {
+                return console.log("Client disappeared during login");
+            }
             if (!payload['authtoken'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
             GsUtil.dbConnection(db, (err, connection) => {
-                if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
-                connection.query('SELECT t1.web_id, t1.pid, t2.username, t2.password, t2.game_country, t2.email FROM revive_soldiers t1 LEFT JOIN web_users t2 ON t1.web_id=t2.id WHERE t1.fesl_token = ? AND t1.game == ?', [payload['authtoken'], 'stella'], (err, result) => {
+                if (!client) {
+		    if (connection) {
+	                connection.release();
+			return console.log("Client disappeared during login");
+                    } else {
+		        return console.log("Client disappeared during login");
+		    }
+                }
+		if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+                connection.query('SELECT t1.web_id, t1.pid, t2.username, t2.password, t2.game_country, t2.email FROM revive_soldiers t1 LEFT JOIN web_users t2 ON t1.web_id=t2.id WHERE t1.fesl_token = ?', [payload['authtoken']], (err, result) => {
+		    if (!client) {
+                        if (connection) {
+			    connection.release();
+			    return console.log("Client disappeared during login");
+                        } else {
+			    return console.log("Client disappeared during login");
+			}
+                    }
                     if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
                     result = result[0];
-                    if (!client) {
-                        connection.release();
-                        return console.log("Client disappeared during login");
-                    }
                     client.state.battlelogId = result.web_id;
                     client.state.plyName = result.username;
                     client.state.plyEmail = result.email;
@@ -178,7 +193,9 @@ server.on('newClient', (client) => {
                         } else {
                             console.log("test");
                             console.log(friendObj);
-                            client.write(friendObj);
+			    if (client) {
+				client.write(friendObj);
+			    }
                         }
                     });
                 }
@@ -199,6 +216,14 @@ server.on('newClient', (client) => {
                             callback();
                             console.log(msgObj);
                         } else if (result.msg_type == 2) {
+			    if (!client) {
+                		if (connection) {
+                		    connection.release();
+                		    return console.log("Client disappeared during login");
+                		} else {
+                		    return console.log("Client disappeared during login");
+                		}
+            		    }
                             var msg = result.msg + '|signed|' + md5(result.from_pid.toString() + client.state.plyPid.toString());
                             msgObj += util.format('\\bm\\%d\\f\\%d\\date\\%d\\msg\\%s\\final\\',
                             result.msg_type, result.from_pid, result.sentDate, msg
@@ -234,8 +259,12 @@ return;
             result = result[0];
 
             if (!client) {
-                connection.release();
-                return console.log("Client disappeared during login");
+                if (connection) {
+		    connection.release();
+		    return console.log("Client disappeared during login");
+                } else {
+		    return console.log("Client disappeared during login");
+		}
             }
             client.state.battlelogId = result.id;
             client.state.plyName = result.username;
@@ -286,7 +315,13 @@ client.on('command.status', (payload) => {
         return console.log("Client disappeared during status command");
     }
     GsUtil.dbConnection(db, (err, connection) => {
-        if (!client || !client.state) return connection.release();
+        if (!client || !client.state) {
+	    if (connection) {
+		return connection.release();
+	    } else {
+		return;
+	    }
+	}
         if (payload.statstring != 'Offline') {
             client.state.statusinfo = '|s|1|ss|' + payload.statstring + '|ls|' + payload.locstring + '|ip|0|p|0';
         } else {
@@ -294,9 +329,23 @@ client.on('command.status', (payload) => {
         }
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
         connection.query('UPDATE revive_soldiers SET status = ?, status_msg = ? WHERE pid = ? AND game= ?', [payload.statstring, payload.locstring, client.state.plyPid, "stella"], (err, result) => {
-            if (!client || !client.state) return connection.release();
+            if (!client || !client.state) {
+		if (connection) {
+		    connection.release();
+		    return;
+		} else {
+		    return;
+		}
+	    }
             connection.query('SELECT uid from revive_friends WHERE fid = ?', [client.state.plyPid], (err, result) => {
-                if (!client || !client.state) return connection.release();
+		if (!client || !client.state) {
+                    if (connection) {
+                	connection.release();
+                	return;
+                    } else {
+                	return;
+                    }
+            	}
                 async.each(result, function(result, callback) {
                     if (clients[result.uid]) {
                         msg = client.state.statusinfo;
@@ -496,7 +545,11 @@ client.on('command.getprofile', (payload) => {
               console.log(sendObj);
             } else {
                 var result = result[0];
-                var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\%d\\firstname\\\\lastname\\' +
+                if (!client) {
+                	return console.log("Client disappeared during login");
+		}
+
+		var sendObj = util.format('\\pi\\\\profileid\\%d\\nick\\%s\\userid\\%d\\email\\%s\\sig\\%s\\uniquenick\\%s\\pid\\%d\\firstname\\\\lastname\\' +
                     '\\countrycode\\%s\\birthday\\16844722\\lon\\0.000000\\lat\\0.000000\\loc\\\\id\\%d\\\\final\\',
                     result.pid,
                     result.nickname,

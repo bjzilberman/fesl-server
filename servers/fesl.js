@@ -111,7 +111,7 @@ server.on('newClient', function (client) {
                 'errorCode':99
             }, type2); }
             connection.query('SELECT id, pid, username, password, game_country, email, banned FROM web_users WHERE username = ? OR username_16 = ?', [payload['name'], payload['name']], (err, result) => {
-                if (!result || result.length == 0) {
+                 if (!result || result.length == 0) {
                     connection.release();
                     return client.write('acct', {
                         TXN: 'Login',
@@ -152,7 +152,6 @@ server.on('newClient', function (client) {
                         if (payload.returnEncryptedInfo = 1) {
                             sendObj['encryptedLoginInfo'] = encryptedLoginInfo;
                         }
-                        console.log(sendObj);
                         client.write('acct', sendObj, type2)
                     }
                 }
@@ -255,7 +254,14 @@ server.on('newClient', function (client) {
         }
         var emailInfo = [];
         client.write('acct', sendObj, type2);
-        if (err || !connection) { console.log(err); return connection.release() }
+        if (err || !connection) { 
+		console.log(err);
+		if (connection) {
+		    return connection.release();
+		} else { 
+		    return; 
+		}
+	}
         connection.query('SELECT username FROM web_users where email = ?', [payload.email], (err, result) => {
             if (err) {
                 // write output error here
@@ -385,7 +391,7 @@ server.on('newClient', function (client) {
         var challenge = GsUtil.bf2Random(7, 'abcdefghijklmnopqrstuvwxyz');
         var ticket = GsUtil.bf2Random(90, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         GsUtil.dbConnection(db, (err, connection) => {
-            if (err || !connection) { console.log(err); return connection.release() }
+            if (err || !connection) { console.log(err); return }
             connection.query('UPDATE revive_soldiers SET fesl_token = ? WHERE nickname= ? AND game = "stella"', [ticket, unescape(client.state.gspid)], (err, result) => {
                 client.write('acct', {
                     TXN: 'GameSpyPreAuth',
