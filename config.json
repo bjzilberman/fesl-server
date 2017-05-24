@@ -1,8 +1,8 @@
 {
   "db": {
-    "host": "52.204.142.63",
-    "user": "spencer",
-    "password": "fuck_you_spencer_asshole",
+    "host": "webdb.bf2.local",
+    "user": "fesl_prod",
+    "password": "b@ttlel0g_f3sl_WIN!",
     "database": "revive_prod"
   },
   "aws": {

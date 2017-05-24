@@ -111,7 +111,7 @@ server.on('newClient', function (client) {
                 'errorCode':99
             }, type2); }
             connection.query('SELECT id, pid, username, password, game_country, email, banned FROM web_users WHERE username = ? OR username_16 = ?', [payload['name'], payload['name']], (err, result) => {
-                if (!result || result.length == 0) {
+                 if (!result || result.length == 0) {
                     connection.release();
                     return client.write('acct', {
                         TXN: 'Login',
@@ -122,39 +122,60 @@ server.on('newClient', function (client) {
                     // write output error here
                 } else {
                     result = result[0];
-                    var password_16 = result.password.substr(0, result.password.length - 16);
-                    if (md5(payload.password) !== result.password && payload.password !== password_16 && payload.password !== result.password) {
-                      connection.release();
-                      return client.write('acct', {
-                          TXN: 'Login',
-                          'localizedMessage':'The password was not correct.',
-                          'errorContainer.[]': 0,
-                          'errorCode':101
-                      }, type2);
-                    } else if (result.banned == 1) {
-                      connection.release();
-                      return client.write('acct', {
-                          TXN: 'Login',
-                          'localizedMessage':'The username has been banned.',
-                          'errorContainer.[]': 0,
-                          'errorCode':103,
-                      }, type2);
-                    } else {
+                    connection.query('SELECT id FROM revive_mac_bans WHERE mac = ?', [payload['macAddr']], (err, res) => {
+
+                      if (!res || res.length == 0) {
+                        connection.query('INSERT INTO revive_mac_history (uid, macAddr, count) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE count = count + 1', [result['id'], payload['macAddr'], 1], (err, res) => {
+                          if (err) {
+                            console.log(err);
+                          }
+                          var password_16 = result.password.substr(0, result.password.length - 16);
+                          if (md5(payload.password) !== result.password && payload.password !== password_16 && payload.password !== result.password) {
+                            connection.release();
+                            return client.write('acct', {
+                                TXN: 'Login',
+                                'localizedMessage':'The password was not correct.',
+                                'errorContainer.[]': 0,
+                                'errorCode':101
+                            }, type2);
+                          } else if (result.banned == 1) {
+                            connection.release();
+                            return client.write('acct', {
+                                TXN: 'Login',
+                                'localizedMessage':'The username has been banned.',
+                                'errorContainer.[]': 0,
+                                'errorCode':103,
+                            }, type2);
+                          } else {
+                              connection.release();
+                              const cipher = crypto.createCipher('aes192', 'b@ttlel0g_bf2142');
+                              var encryptedLoginInfo = cipher.update('password=' + result.password + '|username=' + result.username, 'utf8', 'hex');
+                              encryptedLoginInfo += cipher.final('hex');
+                              client.state.pid = result.id;
+                              var sendObj = {
+                                  TXN: payload.name
+                              }
+                              sendObj[payload.name + '.[]'] = 0;
+                              if (payload.returnEncryptedInfo == 1) {
+                                  sendObj['encryptedLoginInfo'] = encryptedLoginInfo;
+                              }
+                              client.write('acct', sendObj, type2)
+                          }
+                        });
+                      } else {
                         connection.release();
-                        const cipher = crypto.createCipher('aes192', 'b@ttlel0g_bf2142');
-                        var encryptedLoginInfo = cipher.update('password=' + result.password + '|username=' + result.username, 'utf8', 'hex');
-                        encryptedLoginInfo += cipher.final('hex');
-                        client.state.pid = result.id;
-                        var sendObj = {
-                            TXN: payload.name
+                        if (client) {
+                          return client.write('acct', {
+                              TXN: 'Login',
+                              'localizedMessage':'The username has been banned.',
+                              'errorContainer.[]': 0,
+                              'errorCode':69,
+                          }, type2);
+                        } else {
+                          return;
                         }
-                        sendObj[payload.name + '.[]'] = 0;
-                        if (payload.returnEncryptedInfo = 1) {
-                            sendObj['encryptedLoginInfo'] = encryptedLoginInfo;
-                        }
-                        console.log(sendObj);
-                        client.write('acct', sendObj, type2)
-                    }
+                      }
+                    });
                 }
             });
         });
@@ -255,7 +276,14 @@ server.on('newClient', function (client) {
         }
         var emailInfo = [];
         client.write('acct', sendObj, type2);
-        if (err || !connection) { console.log(err); return connection.release() }
+        if (err || !connection) {
+		console.log(err);
+		if (connection) {
+		    return connection.release();
+		} else {
+		    return;
+		}
+	}
         connection.query('SELECT username FROM web_users where email = ?', [payload.email], (err, result) => {
             if (err) {
                 // write output error here
@@ -385,7 +413,7 @@ server.on('newClient', function (client) {
         var challenge = GsUtil.bf2Random(7, 'abcdefghijklmnopqrstuvwxyz');
         var ticket = GsUtil.bf2Random(90, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         GsUtil.dbConnection(db, (err, connection) => {
-            if (err || !connection) { console.log(err); return connection.release() }
+            if (err || !connection) { console.log(err); return }
             connection.query('UPDATE revive_soldiers SET fesl_token = ? WHERE nickname= ? AND game = "stella"', [ticket, unescape(client.state.gspid)], (err, result) => {
                 client.write('acct', {
                     TXN: 'GameSpyPreAuth',
