@@ -10,6 +10,7 @@ const GsUtil = require('../lib/GsUtil');
 const GsSocket = require('../lib/GsSocket');
 
 var db = GsUtil.dbPool();
+var insertLog = require('../lib/GsLog');
 var clients = [];
 
 function Log() {
@@ -97,23 +98,23 @@ server.on('newClient', (client) => {
             }
             if (!payload['authtoken'] || !client.state.clientChallenge || !client.state.clientResponse) { return client.writeError(0, 'Login query missing a variable.') }
             GsUtil.dbConnection(db, (err, connection) => {
-                if (!client) {
-		    if (connection) {
-	                connection.release();
-			return console.log("Client disappeared during login");
-                    } else {
-		        return console.log("Client disappeared during login");
-		    }
-                }
-		if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
-                connection.query('SELECT t1.web_id, t1.pid, t2.username, t2.password, t2.game_country, t2.email FROM revive_soldiers t1 LEFT JOIN web_users t2 ON t1.web_id=t2.id WHERE t1.fesl_token = ?', [payload['authtoken']], (err, result) => {
-		    if (!client) {
-                        if (connection) {
-			    connection.release();
-			    return console.log("Client disappeared during login");
-                        } else {
-			    return console.log("Client disappeared during login");
-			}
+              if (!client) {
+        		    if (connection) {
+                  connection.release();
+        			    return console.log("Client disappeared during login");
+                } else {
+        		      return console.log("Client disappeared during login");
+        		    }
+            }
+            if (err || !connection) { return client.writeError(265, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+                connection.query('SELECT t1.web_id, t1.pid, t2.username, t2.password, t2.game_country, t2.email, t2.banned, t2.confirmed_em FROM revive_soldiers t1 LEFT JOIN web_users t2 ON t1.web_id=t2.id WHERE t1.fesl_token = ?', [payload['authtoken']], (err, result) => {
+            		    if (!client) {
+                      if (connection) {
+                			    connection.release();
+                			    return console.log("Client disappeared during login");
+                      } else {
+                			    return console.log("Client disappeared during login");
+                			}
                     }
                     if (!result || result.length == 0) { connection.release(); return client.writeError(265, 'The username provided is not registered.') }
                     result = result[0];
@@ -122,12 +123,16 @@ server.on('newClient', (client) => {
                     client.state.plyEmail = result.email;
                     client.state.plyCountry = result.game_country;
                     client.state.plyPid = result.pid;
+                    client.state.confirmed = result.confirmed_em;
+                    client.state.banned = result.banned;
+                    client.state.ipAddress = client.socket.remoteAddress;
                     clients[client.state.plyPid] = client;
                     clients[client.state.battlelogId] = client;
 
                     var responseVerify = md5(result.password + Array(49).join(' ') + payload.uniquenick + client.state.clientChallenge + client.state.serverChallenge + result.password);
                     /*if (client.state.clientResponse !== responseVerify) {
                     Log('Login Failure', client.socket.remoteAddress, client.state.plyName, 'Password: ' + result.password)
+                    insertLog(client.state.battlelogId, client.state.plyPid, client.state.ipAddress, client.state.username, 'login_failed')
                     connection.release();
                     return client.writeError(256, 'Incorrect password. Visit www.battlelog.co if you forgot your password.');
                 }*/
@@ -240,7 +245,8 @@ server.on('newClient', (client) => {
             });
         }
     });
-    connection.query('UPDATE revive_soldiers SET online = 1 WHERE pid=? and game =?', [result.pid, "stella"]);
+    insertLog(client.state.battlelogId, client.state.plyPid, client.state.ipAddress, client.state.username, 'login')
+    connection.query('UPDATE revive_soldiers SET online = 1, ip = INET_ATON(?) WHERE pid=? AND game=?', [client.state.ipAddress, result.pid, "stella"]);
     process.send({type: 'clientLogin', id: result.pid});
     client.state.hasLogin = true;
     connection.release();
@@ -587,6 +593,7 @@ client.on('command.updatepro', (payload) => {
 });
 
 client.on('command.logout', (payload) => {
+    insertLog(client.state.battlelogId, client.state.plyPid, client.state.ipAddress, client.state.username, 'logout')
     client.close();
 })
 
@@ -594,11 +601,12 @@ client.on('command.newuser', (payload) => {
     client.writeError(516, 'Registration in game is currently unavailable. Please visit battlelog.co to register.');
 });
 
-client.on('close', () => {
+client.on('close', (had_error) => {
     if (!client.state) return;
     var pid = client.state.plyPid;
     if (client.state.hasLogin) {
         Log('Logout', client.state.plyName, client.socket.remoteAddress, client.state.plyPid);
+        insertLog(client.state.battlelogId, client.state.plyPid, client.state.ipAddress, client.state.username, had_error?'close_error':'close')
         GsUtil.dbConnection(db, (err, connection) => {
             if (err || !connection) { return console.log('Error logging someone out due to DB connection failure... What do?') }
             var msg = '|s|0|ss|Offline';

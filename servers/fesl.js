@@ -11,6 +11,7 @@ var cluster = require('cluster'),
 const GsUtil = require('../lib/GsUtil');
 const emailUtil = require('../lib/emailUtil');
 const FeslServer = require('../lib/FeslServer');
+const insertLog = require('../lib/GsLog');
 
 function Log() {
     console.log(GsUtil.Time() + chalk.green('FESL') + '\t\t' + Array.prototype.join.call(arguments, '\t'));
@@ -131,6 +132,7 @@ server.on('newClient', function (client) {
                           }
                           var password_16 = result.password.substr(0, result.password.length - 16);
                           if (md5(payload.password) !== result.password && payload.password !== password_16 && payload.password !== result.password) {
+                            insertLog(client.state.battlelogId, client.state.plyPid, client.state.ipAddress, client.state.username, 'login_failed')
                             connection.release();
                             return client.write('acct', {
                                 TXN: 'Login',
@@ -139,6 +141,7 @@ server.on('newClient', function (client) {
                                 'errorCode':101
                             }, type2);
                           } else if (result.banned == 1) {
+                            insertLog(client.state.battlelogId, client.state.plyPid, client.state.ipAddress, client.state.username, 'login_banned')
                             connection.release();
                             return client.write('acct', {
                                 TXN: 'Login',
@@ -147,6 +150,7 @@ server.on('newClient', function (client) {
                                 'errorCode':103,
                             }, type2);
                           } else {
+                              insertLog(client.state.battlelogId, client.state.plyPid, client.state.ipAddress, client.state.username, 'login')
                               connection.release();
                               const cipher = crypto.createCipher('aes192', 'b@ttlel0g_bf2142');
                               var encryptedLoginInfo = cipher.update('password=' + result.password + '|username=' + result.username, 'utf8', 'hex');
