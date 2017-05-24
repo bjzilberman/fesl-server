@@ -512,6 +512,9 @@ client.on('command.authadd', (payload) => {
     console.log(payload);
     GsUtil.dbConnection(db, (err, connection) => {
         if (err || !connection) { return client.writeError(203, 'The login service is having an issue reaching the database. Please try again in a few minutes.'); }
+	if (!client) {
+	    return;
+	}
         var uid = client.state.battlelogId;
         var pid = client.state.plyPid;
         var fid = payload['fromprofileid'];
