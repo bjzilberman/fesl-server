@@ -245,8 +245,9 @@ server.on('newClient', (client) => {
             });
         }
     });
-    insertLog(client.state.battlelogId, client.state.plyPid, client.state.ipAddress, client.state.username, 'login')
-    connection.query('UPDATE revive_soldiers SET online = 1, ip = INET_ATON(?) WHERE pid=? AND game=?', [client.state.ipAddress, result.pid, "stella"]);
+    if (result.pid != null) {
+        connection.query('UPDATE revive_soldiers SET online = 1, ip = INET_ATON(?) WHERE pid=? AND game=?', [client.state.ipAddress, result.pid, "stella"]);
+    }
     process.send({type: 'clientLogin', id: result.pid});
     client.state.hasLogin = true;
     connection.release();
