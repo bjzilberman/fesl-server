@@ -1,13 +1,13 @@
 {
   "db": {
-    "host": "webdb.bf2.local",
-    "user": "fesl_prod",
-    "password": "b@ttlel0g_f3sl_WIN!",
-    "database": "revive_prod"
+    "host": "",
+    "user": "",
+    "password": "",
+    "database": ""
   },
   "aws": {
-    "accessKeyId": "AKIAJAJMF7FCI5265URQ",
-    "secretAccessKey": "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", 
-    "region": "us-east-1"
+    "accessKeyId": "",
+    "secretAccessKey": "", 
+    "region": ""
   }
 }
